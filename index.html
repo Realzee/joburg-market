@@ -93,11 +93,17 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
-        // Global Supabase initialization
-        const supabaseUrl = 'https://xvcehitgpuvzagjttecc.supabase.co';
-        const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2Y2VoaXRncHV2emFnanR0ZWNjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA0MjMyODMsImV4cCI6MjA3NTk5OTI4M30.UQs15hRbGPwJxhbx2b4dr2oMN5T2ZX9pP0T5pTi3FWU';
-        const supabase = supabase.createClient(supabaseUrl, supabaseAnonKey);
-        console.log('Supabase initialized');
+        // Global Supabase initialization with readiness check
+        let supabase;
+        try {
+            const supabaseUrl = 'https://xvcehitgpuvzagjttecc.supabase.co';
+            const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2Y2VoaXRncHV2emFnanR0ZWNjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA0MjMyODMsImV4cCI6MjA3NTk5OTI4M30.UQs15hRbGPwJxhbx2b4dr2oMN5T2ZX9pP0T5pTi3FWU';
+            supabase = supabase.createClient(supabaseUrl, supabaseAnonKey);
+            console.log('Supabase initialized successfully');
+        } catch (error) {
+            console.error('Supabase initialization failed:', error);
+            alert('Failed to initialize application. Check console for details.');
+        }
 
         // DOM Elements
         const loginSection = document.getElementById('loginSection');
@@ -116,7 +122,13 @@
 
         // Initialize application
         (async () => {
-            console.log('Initializing app...');
+            if (!supabase) {
+                console.error('Supabase not initialized');
+                authMessage.textContent = 'Application failed to start due to initialization error.';
+                return;
+            }
+            console.log('Initializing app with Supabase...');
+
             try {
                 const { data: { session } } = await supabase.auth.getSession();
                 if (session) await handleAuthState(session.user);
@@ -193,7 +205,7 @@
 
         // Handle Authentication State
         async function handleAuthState(user) {
-            if (user) {
+            if (user && supabase) {
                 try {
                     console.log('Handling auth state for user:', user.id);
                     const { data: profile } = await supabase
@@ -292,6 +304,7 @@
 
         // Update Profile
         async function updateProfile(userType) {
+            if (!supabase) return;
             const fullName = prompt('Enter your full name:', '');
             if (!fullName || !userType) {
                 authMessage.textContent = 'Full name and user type are required';
@@ -319,6 +332,7 @@
 
         // Add Produce
         async function addProduce() {
+            if (!supabase) return;
             const name = document.getElementById('produceName').value;
             const qty = parseFloat(document.getElementById('produceQty').value);
             const price = parseFloat(document.getElementById('producePrice').value);
@@ -344,6 +358,7 @@
 
         // Submit Order
         async function submitOrder() {
+            if (!supabase) return;
             const produceId = document.getElementById('orderProduceId').value;
             const qty = parseFloat(document.getElementById('orderQty').value);
 
@@ -383,6 +398,7 @@
 
         // Refresh Data
         async function refreshData(role) {
+            if (!supabase) return;
             authMessage.textContent = `Refreshing ${role} data...`;
             try {
                 setTimeout(() => {
@@ -391,6 +407,18 @@
             } catch (error) {
                 authMessage.textContent = `Refresh failed: ${error.message}`;
             }
+        }
+
+        // Auth State Change Listener (outside initialization)
+        if (supabase) {
+            supabase.auth.onAuthStateChange((event, session) => {
+                if (event === 'SIGNED_IN') handleAuthState(session.user);
+                if (event === 'SIGNED_OUT') {
+                    loginSection.style.display = 'block';
+                    dashboardSection.style.display = 'none';
+                    authMessage.textContent = 'Logged out successfully.';
+                }
+            });
         }
     </script>
 </body>
