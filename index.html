@@ -98,13 +98,20 @@
         </footer>
     </div>
 
+    <!-- Load Supabase with fallback -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.0/dist/umd/supabase.min.js"></script>
     <script>
+        // Wait for the page to fully load
+        window.addEventListener('load', function() {
+            initializeApp();
+        });
+
         // Application State
         const AppState = {
             supabase: null,
             isInitialized: false,
             currentUser: null,
-            isDemoMode: true
+            isDemoMode: true // Start in demo mode until Supabase loads
         };
 
         // DOM Elements
@@ -208,26 +215,43 @@
 
         // Initialize Application
         async function initializeApp() {
+            console.log('Initializing application...');
+            utils.showMessage('Initializing application...', 'info');
+            
+            // Try to initialize Supabase
             try {
-                utils.showMessage('Initializing application...', 'info');
-                
-                // Try to load Supabase
-                if (typeof supabase !== 'undefined') {
+                // Check if Supabase is available globally
+                if (typeof window.supabase !== 'undefined' && window.supabase) {
+                    console.log('Supabase library found, initializing...');
+                    
                     const supabaseUrl = 'https://xvcehitgpuvzagjttecc.supabase.co';
                     const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2Y2VoaXRncHV2emFnanR0ZWNjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA0MjMyODMsImV4cCI6MjA3NTk5OTI4M30.UQs15hRbGPwJxhbx2b4dr2oMN5T2ZX9pP0T5pTi3FWU';
                     
-                    AppState.supabase = supabase.createClient(supabaseUrl, supabaseAnonKey);
+                    AppState.supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
                     AppState.isInitialized = true;
                     AppState.isDemoMode = false;
+                    
+                    // Enable Google login button
                     elements.googleLoginBtn.disabled = false;
-                    utils.showMessage('Application initialized successfully!', 'success');
+                    
+                    utils.showMessage('Application initialized successfully with Supabase!', 'success');
                     console.log('Supabase initialized successfully');
+                    
+                    // Test the connection
+                    const { data, error } = await AppState.supabase.from('profiles').select('count').limit(1);
+                    if (error) {
+                        console.warn('Supabase connection test failed:', error);
+                        utils.showMessage('Connected to Supabase but database access may be limited.', 'info');
+                    } else {
+                        console.log('Supabase connection test successful');
+                    }
                 } else {
-                    throw new Error('Supabase library not available');
+                    throw new Error('Supabase library not available in window object');
                 }
             } catch (error) {
                 console.warn('Supabase initialization failed, running in demo mode:', error);
                 AppState.isDemoMode = true;
+                AppState.isInitialized = false;
                 utils.showMessage('Running in demo mode. Some features may be limited.', 'info');
             }
 
@@ -242,15 +266,20 @@
                 let session = null;
                 
                 if (AppState.isInitialized && !AppState.isDemoMode) {
+                    console.log('Checking Supabase session...');
                     const result = await AppState.supabase.auth.getSession();
                     session = result.data.session;
                 } else {
+                    console.log('Checking demo session...');
                     const result = demoMode.getSession();
                     session = result.data.session;
                 }
 
                 if (session) {
+                    console.log('Found existing session for user:', session.user.email);
                     await handleAuthState(session.user);
+                } else {
+                    console.log('No existing session found');
                 }
             } catch (error) {
                 console.error('Session check failed:', error);
@@ -259,6 +288,8 @@
 
         // Setup Event Listeners
         function setupEventListeners() {
+            console.log('Setting up event listeners...');
+            
             // Login form
             elements.loginForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
@@ -283,6 +314,8 @@
             elements.logoutBtn.addEventListener('click', async () => {
                 await handleLogout();
             });
+
+            console.log('Event listeners setup complete');
         }
 
         // Authentication Handlers
@@ -303,8 +336,10 @@
                 let result;
                 
                 if (AppState.isInitialized && !AppState.isDemoMode) {
+                    console.log('Attempting Supabase login...');
                     result = await AppState.supabase.auth.signInWithPassword({ email, password });
                 } else {
+                    console.log('Attempting demo login...');
                     result = await demoMode.signIn(email, password, userType);
                 }
 
@@ -338,12 +373,14 @@
                 let result;
                 
                 if (AppState.isInitialized && !AppState.isDemoMode) {
+                    console.log('Attempting Supabase registration...');
                     result = await AppState.supabase.auth.signUp({
                         email,
                         password,
                         options: { data: { role: userType } }
                     });
                 } else {
+                    console.log('Attempting demo registration...');
                     result = await demoMode.signUp(email, password, userType);
                 }
 
@@ -367,6 +404,7 @@
             }
 
             try {
+                utils.showMessage('Redirecting to Google...', 'info');
                 const { error } = await AppState.supabase.auth.signInWithOAuth({
                     provider: 'google',
                     options: { redirectTo: window.location.href }
@@ -419,6 +457,8 @@
             
             if (AppState.isDemoMode) {
                 content += `<div class="info-message">Demo Mode: You are currently using demo functionality. Real database operations are disabled.</div>`;
+            } else {
+                content += `<div class="success-message">Connected to Supabase - Full functionality available!</div>`;
             }
 
             switch (role) {
@@ -441,7 +481,7 @@
                             <li>Notify Buyers</li>
                             <li><a href="#" onclick="showAnalytics()">View Analytics</a></li>
                             <div id="analytics" class="feature-form" style="display:none;">
-                                <p>Analytics data would be displayed here in production mode.</p>
+                                <p>Analytics data would be displayed here.</p>
                             </div>
                             <li>Track Orders</li>
                             <li>Manage Deliveries</li>
@@ -498,15 +538,15 @@
             elements.dashboardContent.innerHTML = content;
         }
 
-        // Feature Functions
-        function showForm(id) {
+        // Feature Functions (make them global)
+        window.showForm = function(id) {
             const form = document.getElementById(id);
             if (form) {
                 form.style.display = form.style.display === 'block' ? 'none' : 'block';
             }
         }
 
-        function showAnalytics() {
+        window.showAnalytics = function() {
             const analytics = document.getElementById('analytics');
             if (analytics) {
                 analytics.style.display = analytics.style.display === 'block' ? 'none' : 'block';
@@ -518,14 +558,14 @@
             }
         }
 
-        function refreshData(role) {
+        window.refreshData = function(role) {
             utils.showMessage(`Refreshing ${role} data...`, 'info');
             setTimeout(() => {
                 utils.showMessage(`${role} data refreshed successfully!`, 'success');
             }, 1000);
         }
 
-        function addProduce() {
+        window.addProduce = function() {
             if (AppState.isDemoMode) {
                 utils.showMessage('Demo: Produce would be added to database in production mode.', 'info');
                 showForm('listProduce');
@@ -534,7 +574,7 @@
             }
         }
 
-        function submitOrder() {
+        window.submitOrder = function() {
             if (AppState.isDemoMode) {
                 utils.showMessage('Demo: Order would be submitted in production mode.', 'info');
                 showForm('placeOrder');
@@ -542,9 +582,6 @@
                 utils.showMessage('Submitting order...', 'info');
             }
         }
-
-        // Initialize the application when the page loads
-        document.addEventListener('DOMContentLoaded', initializeApp);
     </script>
 </body>
 </html>
