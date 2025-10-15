@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Joburg Market - Login & Dashboard</title>
+    <link rel="icon" href="./src/assets/favicon.ico" type="image/x-icon"> <!-- Added favicon to suppress 404 -->
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
         body { margin: 0; font-family: 'Inter', sans-serif; background: linear-gradient(135deg, #f6f8f7 0%, #e8f0e8 100%); color: #333; line-height: 1.6; }
@@ -25,8 +26,17 @@
         .google-btn { background: #ffffff; color: #0f5d3a; border: 1px solid #d1d9d9; display: flex; align-items: center; justify-content: center; gap: 10px; }
         .google-btn:hover { background: #f8f9fa; }
         .dashboard { display: none; padding: 20px; }
+        .feature-form { display: none; margin-top: 15px; padding: 10px; border: 1px solid #d1d9d9; border-radius: 8px; background: #f8f9fa; }
         .footer { text-align: center; margin-top: 40px; padding: 20px; color: #666; font-size: 12px; border-top: 1px solid #e8f0e8; }
-        @media (max-width: 768px) { .container { padding: 10px; } .header { flex-direction: column; gap: 10px; text-align: center; } .section { padding: 20px; } .title { font-size: 24px; } .btn { padding: 10px 20px; } .input { font-size: 12px; } .form-group { margin-bottom: 10px; } }
+        @media (max-width: 768px) { 
+            .container { padding: 10px; } 
+            .header { flex-direction: column; gap: 10px; text-align: center; } 
+            .section { padding: 20px; } 
+            .title { font-size: 24px; } 
+            .btn { padding: 10px 20px; } 
+            .input { font-size: 12px; } 
+            .form-group { margin-bottom: 10px; } 
+        }
     </style>
 </head>
 <body>
@@ -83,10 +93,12 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
+        // Initialize Supabase client
         const supabaseUrl = 'https://xvcehitgpuvzagjttecc.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2Y2VoaXRncHV2emFnanR0ZWNjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA0MjMyODMsImV4cCI6MjA3NTk5OTI4M30.UQs15hRbGPwJxhbx2b4dr2oMN5T2ZX9pP0T5pTi3FWU';
         const supabase = supabase.createClient(supabaseUrl, supabaseAnonKey);
 
+        // DOM Elements
         const loginSection = document.getElementById('loginSection');
         const dashboardSection = document.getElementById('dashboardSection');
         const loginForm = document.getElementById('loginForm');
@@ -101,6 +113,7 @@
         const dashboardContent = document.getElementById('dashboardContent');
         const logoutBtn = document.getElementById('logoutBtn');
 
+        // Event Listeners
         document.addEventListener('DOMContentLoaded', async () => {
             const { data: { session } } = await supabase.auth.getSession();
             if (session) handleAuthState(session.user);
@@ -170,119 +183,132 @@
             authMessage.textContent = 'Logged out successfully.';
         });
 
+        // Handle Authentication State
         async function handleAuthState(user) {
             if (user) {
-                const { data: profile } = await supabase
-                    .from('profiles')
-                    .select('role, full_name')
-                    .eq('id', user.id)
-                    .single();
-                if (!profile) {
-                    await updateProfile(userTypeSelect.value || 'guest');
-                    return handleAuthState(user);
-                }
-                userName.textContent = profile.full_name || user.email.split('@')[0];
-                userRole.textContent = profile.role || 'guest';
-                loginSection.style.display = 'none';
-                dashboardSection.style.display = 'block';
+                try {
+                    const { data: profile } = await supabase
+                        .from('profiles')
+                        .select('role, full_name')
+                        .eq('id', user.id)
+                        .single();
+                    if (!profile) {
+                        await updateProfile(userTypeSelect.value || 'guest');
+                        return handleAuthState(user); // Retry after profile creation
+                    }
+                    userName.textContent = profile.full_name || user.email.split('@')[0];
+                    userRole.textContent = profile.role || 'guest';
+                    loginSection.style.display = 'none';
+                    dashboardSection.style.display = 'block';
 
-                let content = '';
-                switch (profile.role) {
-                    case 'farmer':
-                        content = `
-                            <h3>Farmer Dashboard</h3>
-                            <button class="btn" onclick="refreshData('farmer')">Refresh Data</button>
-                            <ul>
-                                <li><a href="#" onclick="showForm('listProduce')">List Produce</a></li>
-                                <div id="listProduce" class="feature-form" style="display:none;">
-                                    <input class="input" type="text" placeholder="Name" id="produceName">
-                                    <input class="input" type="number" placeholder="Quantity (kg)" id="produceQty" step="0.01">
-                                    <input class="input" type="number" placeholder="Price per kg" id="producePrice" step="0.01">
-                                    <select class="input" id="produceGrade">
-                                        <option value="A">A</option><option value="B">B</option><option value="C">C</option>
-                                    </select>
-                                    <button class="btn" onclick="addProduce()">Add Produce</button>
-                                </div>
-                                <li>Set Pricing</li>
-                                <li>Notify Buyers</li>
-                                <li><a href="#" onclick="showAnalytics()">View Analytics</a></li>
-                                <div id="analytics" class="feature-form" style="display:none;">Loading analytics...</div>
-                                <li>Track Orders</li>
-                                <li>Manage Deliveries</li>
-                            </ul>
-                        `;
-                        break;
-                    case 'trader':
-                        content = `
-                            <h3>Trader Dashboard</h3>
-                            <button class="btn" onclick="refreshData('trader')">Refresh Data</button>
-                            <ul>
-                                <li>Browse Produce</li>
-                                <li>View Pricing</li>
-                                <li><a href="#" onclick="showForm('placeOrder')">Place Order</a></li>
-                                <div id="placeOrder" class="feature-form" style="display:none;">
-                                    <input class="input" type="text" placeholder="Produce ID" id="orderProduceId">
-                                    <input class="input" type="number" placeholder="Quantity (kg)" id="orderQty" step="0.01">
-                                    <button class="btn" onclick="submitOrder()">Submit Order</button>
-                                </div>
-                                <li>Request Deliveries</li>
-                                <li>Wallet Payments</li>
-                                <li>Deal Alerts</li>
-                            </ul>
-                        `;
-                        break;
-                    case 'admin':
-                        content = `
-                            <h3>Admin Dashboard</h3>
-                            <button class="btn" onclick="refreshData('admin')">Refresh Data</button>
-                            <ul>
-                                <li>Real-Time Dashboard</li>
-                                <li>Manage Listings</li>
-                                <li>Audit & Settlement</li>
-                                <li>Notifications</li>
-                            </ul>
-                        `;
-                        break;
-                    case 'logistics':
-                        content = `
-                            <h3>Logistics Dashboard</h3>
-                            <button class="btn" onclick="refreshData('logistics')">Refresh Data</button>
-                            <ul>
-                                <li>Route Optimization</li>
-                                <li>Track Shipments</li>
-                                <li>Coordinate Loading</li>
-                                <li>Order Integration</li>
-                            </ul>
-                        `;
-                        break;
-                    default:
-                        content = 'Please contact support to assign a role.';
+                    let content = '';
+                    switch (profile.role) {
+                        case 'farmer':
+                            content = `
+                                <h3>Farmer Dashboard</h3>
+                                <button class="btn" onclick="refreshData('farmer')">Refresh Data</button>
+                                <ul>
+                                    <li><a href="#" onclick="showForm('listProduce')">List Produce</a></li>
+                                    <div id="listProduce" class="feature-form" style="display:none;">
+                                        <input class="input" type="text" placeholder="Name" id="produceName">
+                                        <input class="input" type="number" placeholder="Quantity (kg)" id="produceQty" step="0.01">
+                                        <input class="input" type="number" placeholder="Price per kg" id="producePrice" step="0.01">
+                                        <select class="input" id="produceGrade">
+                                            <option value="A">A</option><option value="B">B</option><option value="C">C</option>
+                                        </select>
+                                        <button class="btn" onclick="addProduce()">Add Produce</button>
+                                    </div>
+                                    <li>Set Pricing</li>
+                                    <li>Notify Buyers</li>
+                                    <li><a href="#" onclick="showAnalytics()">View Analytics</a></li>
+                                    <div id="analytics" class="feature-form" style="display:none;">Loading analytics...</div>
+                                    <li>Track Orders</li>
+                                    <li>Manage Deliveries</li>
+                                </ul>
+                            `;
+                            break;
+                        case 'trader':
+                            content = `
+                                <h3>Trader Dashboard</h3>
+                                <button class="btn" onclick="refreshData('trader')">Refresh Data</button>
+                                <ul>
+                                    <li>Browse Produce</li>
+                                    <li>View Pricing</li>
+                                    <li><a href="#" onclick="showForm('placeOrder')">Place Order</a></li>
+                                    <div id="placeOrder" class="feature-form" style="display:none;">
+                                        <input class="input" type="text" placeholder="Produce ID" id="orderProduceId">
+                                        <input class="input" type="number" placeholder="Quantity (kg)" id="orderQty" step="0.01">
+                                        <button class="btn" onclick="submitOrder()">Submit Order</button>
+                                    </div>
+                                    <li>Request Deliveries</li>
+                                    <li>Wallet Payments</li>
+                                    <li>Deal Alerts</li>
+                                </ul>
+                            `;
+                            break;
+                        case 'admin':
+                            content = `
+                                <h3>Admin Dashboard</h3>
+                                <button class="btn" onclick="refreshData('admin')">Refresh Data</button>
+                                <ul>
+                                    <li>Real-Time Dashboard</li>
+                                    <li>Manage Listings</li>
+                                    <li>Audit & Settlement</li>
+                                    <li>Notifications</li>
+                                </ul>
+                            `;
+                            break;
+                        case 'logistics':
+                            content = `
+                                <h3>Logistics Dashboard</h3>
+                                <button class="btn" onclick="refreshData('logistics')">Refresh Data</button>
+                                <ul>
+                                    <li>Route Optimization</li>
+                                    <li>Track Shipments</li>
+                                    <li>Coordinate Loading</li>
+                                    <li>Order Integration</li>
+                                </ul>
+                            `;
+                            break;
+                        default:
+                            content = 'Please contact support to assign a role.';
+                    }
+                    dashboardContent.innerHTML = content;
+                } catch (error) {
+                    console.error('Auth state error:', error.message);
+                    authMessage.textContent = `Dashboard load failed: ${error.message}`;
                 }
-                dashboardContent.innerHTML = content;
             }
         }
 
+        // Update Profile
         async function updateProfile(userType) {
             const fullName = prompt('Enter your full name:', '');
-            if (!fullName || !userType) return;
-            const { error } = await supabase.from('profiles').upsert({
-                id: (await supabase.auth.getUser()).data.user.id,
-                role: userType,
-                full_name: fullName
-            }, { onConflict: 'id' });
-            if (error) {
+            if (!fullName || !userType) {
+                authMessage.textContent = 'Full name and user type are required';
+                return;
+            }
+            try {
+                const { error } = await supabase.from('profiles').upsert({
+                    id: (await supabase.auth.getUser()).data.user.id,
+                    role: userType,
+                    full_name: fullName
+                }, { onConflict: 'id' });
+                if (error) throw error;
+                authMessage.textContent = 'Profile updated successfully!';
+            } catch (error) {
                 console.error('Profile update failed:', error.message);
                 authMessage.textContent = `Profile update failed: ${error.message}`;
-            } else {
-                authMessage.textContent = 'Profile updated successfully!';
             }
         }
 
+        // Show/Hide Forms
         function showForm(id) {
             const form = document.getElementById(id);
             form.style.display = form.style.display === 'block' ? 'none' : 'block';
         }
 
+        // Add Produce
         async function addProduce() {
             const name = document.getElementById('produceName').value;
             const qty = parseFloat(document.getElementById('produceQty').value);
@@ -294,18 +320,20 @@
                 return;
             }
 
-            const { data, error } = await supabase.from('produce').insert({
-                name, quantity_kg: qty, price_per_kg: price, quality_grade: grade,
-                farmer_id: (await supabase.auth.getUser()).data.user.id
-            });
-            if (error) {
-                authMessage.textContent = `Add failed: ${error.message}`;
-            } else {
+            try {
+                const { data, error } = await supabase.from('produce').insert({
+                    name, quantity_kg: qty, price_per_kg: price, quality_grade: grade,
+                    farmer_id: (await supabase.auth.getUser()).data.user.id
+                });
+                if (error) throw error;
                 authMessage.textContent = 'Produce added successfully!';
                 document.getElementById('listProduce').style.display = 'none';
+            } catch (error) {
+                authMessage.textContent = `Add failed: ${error.message}`;
             }
         }
 
+        // Submit Order
         async function submitOrder() {
             const produceId = document.getElementById('orderProduceId').value;
             const qty = parseFloat(document.getElementById('orderQty').value);
@@ -315,33 +343,49 @@
                 return;
             }
 
-            const { data, error } = await supabase.from('orders').insert({
-                produce_id: produceId, quantity_kg: qty,
-                buyer_id: (await supabase.auth.getUser()).data.user.id,
-                total_amount: qty * (await supabase.from('produce').select('price_per_kg').eq('id', produceId).single()).data.price_per_kg,
-                status: 'pending'
-            });
-            if (error) {
-                authMessage.textContent = `Order failed: ${error.message}`;
-            } else {
+            try {
+                const { data: produce } = await supabase
+                    .from('produce')
+                    .select('price_per_kg')
+                    .eq('id', produceId)
+                    .single();
+                if (!produce) throw new Error('Invalid produce ID');
+
+                const { data, error } = await supabase.from('orders').insert({
+                    produce_id: produceId,
+                    quantity_kg: qty,
+                    buyer_id: (await supabase.auth.getUser()).data.user.id,
+                    total_amount: qty * produce.price_per_kg,
+                    status: 'pending'
+                });
+                if (error) throw error;
                 authMessage.textContent = 'Order placed successfully!';
                 document.getElementById('placeOrder').style.display = 'none';
+            } catch (error) {
+                authMessage.textContent = `Order failed: ${error.message}`;
             }
         }
 
+        // Show Analytics
         function showAnalytics() {
             const analytics = document.getElementById('analytics');
             analytics.style.display = analytics.style.display === 'block' ? 'none' : 'block';
         }
 
+        // Refresh Data
         async function refreshData(role) {
             authMessage.textContent = `Refreshing ${role} data...`;
-            // Simulate data refresh (replace with real API calls if needed)
-            setTimeout(() => {
-                authMessage.textContent = `${role} data refreshed!`;
-            }, 1000);
+            try {
+                // Simulate data refresh (replace with real API calls)
+                setTimeout(() => {
+                    authMessage.textContent = `${role} data refreshed!`;
+                }, 1000);
+            } catch (error) {
+                authMessage.textContent = `Refresh failed: ${error.message}`;
+            }
         }
 
+        // Auth State Change Listener
         supabase.auth.onAuthStateChange((event, session) => {
             if (event === 'SIGNED_IN') handleAuthState(session.user);
             if (event === 'SIGNED_OUT') {
