@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Joburg Market - Login & Dashboard</title>
-    <link rel="icon" href="./src/assets/favicon.ico" type="image/x-icon"> <!-- Added favicon to suppress 404 -->
+    <link rel="icon" href="./src/assets/favicon.ico" type="image/x-icon"> <!-- Suppress 404 for favicon -->
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
         body { margin: 0; font-family: 'Inter', sans-serif; background: linear-gradient(135deg, #f6f8f7 0%, #e8f0e8 100%); color: #333; line-height: 1.6; }
@@ -93,10 +93,11 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
-        // Initialize Supabase client
+        // Global Supabase initialization
         const supabaseUrl = 'https://xvcehitgpuvzagjttecc.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2Y2VoaXRncHV2emFnanR0ZWNjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA0MjMyODMsImV4cCI6MjA3NTk5OTI4M30.UQs15hRbGPwJxhbx2b4dr2oMN5T2ZX9pP0T5pTi3FWU';
         const supabase = supabase.createClient(supabaseUrl, supabaseAnonKey);
+        console.log('Supabase initialized');
 
         // DOM Elements
         const loginSection = document.getElementById('loginSection');
@@ -113,80 +114,88 @@
         const dashboardContent = document.getElementById('dashboardContent');
         const logoutBtn = document.getElementById('logoutBtn');
 
-        // Event Listeners
-        document.addEventListener('DOMContentLoaded', async () => {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (session) handleAuthState(session.user);
-        });
+        // Initialize application
+        (async () => {
+            console.log('Initializing app...');
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+                if (session) await handleAuthState(session.user);
 
-        loginForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const email = emailInput.value;
-            const password = passwordInput.value;
-            const userType = userTypeSelect.value;
+                // Event Listeners
+                loginForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const email = emailInput.value;
+                    const password = passwordInput.value;
+                    const userType = userTypeSelect.value;
 
-            if (!email || !password || !userType) {
-                authMessage.textContent = 'Please fill all fields';
-                return;
+                    if (!email || !password || !userType) {
+                        authMessage.textContent = 'Please fill all fields';
+                        return;
+                    }
+
+                    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+                    if (error) {
+                        authMessage.textContent = `Login failed: ${error.message}`;
+                        return;
+                    }
+                    await updateProfile(userType);
+                    await handleAuthState(data.user);
+                });
+
+                googleLoginBtn.addEventListener('click', async () => {
+                    const { data, error } = await supabase.auth.signInWithOAuth({
+                        provider: 'google',
+                        options: {
+                            redirectTo: window.location.href
+                        }
+                    });
+                    if (error) {
+                        authMessage.textContent = `Google login failed: ${error.message}`;
+                        return;
+                    }
+                });
+
+                registerBtn.addEventListener('click', async () => {
+                    const email = emailInput.value;
+                    const password = passwordInput.value;
+                    const userType = userTypeSelect.value;
+
+                    if (!email || !password || !userType) {
+                        authMessage.textContent = 'Please fill all fields';
+                        return;
+                    }
+
+                    const { data, error } = await supabase.auth.signUp({
+                        email,
+                        password,
+                        options: {
+                            data: { role: userType }
+                        }
+                    });
+                    if (error) {
+                        authMessage.textContent = `Registration failed: ${error.message}`;
+                        return;
+                    }
+                    authMessage.textContent = 'Registration successful! Please check your email for verification.';
+                });
+
+                logoutBtn.addEventListener('click', async () => {
+                    await supabase.auth.signOut();
+                    loginSection.style.display = 'block';
+                    dashboardSection.style.display = 'none';
+                    authMessage.textContent = 'Logged out successfully.';
+                });
+            } catch (error) {
+                console.error('Initialization error:', error);
+                authMessage.textContent = `App initialization failed: ${error.message}`;
             }
-
-            const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-            if (error) {
-                authMessage.textContent = `Login failed: ${error.message}`;
-                return;
-            }
-            await updateProfile(userType);
-            handleAuthState(data.user);
-        });
-
-        googleLoginBtn.addEventListener('click', async () => {
-            const { data, error } = await supabase.auth.signInWithOAuth({
-                provider: 'google',
-                options: {
-                    redirectTo: window.location.href
-                }
-            });
-            if (error) {
-                authMessage.textContent = `Google login failed: ${error.message}`;
-                return;
-            }
-        });
-
-        registerBtn.addEventListener('click', async () => {
-            const email = emailInput.value;
-            const password = passwordInput.value;
-            const userType = userTypeSelect.value;
-
-            if (!email || !password || !userType) {
-                authMessage.textContent = 'Please fill all fields';
-                return;
-            }
-
-            const { data, error } = await supabase.auth.signUp({
-                email,
-                password,
-                options: {
-                    data: { role: userType }
-                }
-            });
-            if (error) {
-                authMessage.textContent = `Registration failed: ${error.message}`;
-                return;
-            }
-            authMessage.textContent = 'Registration successful! Please check your email for verification.';
-        });
-
-        logoutBtn.addEventListener('click', async () => {
-            await supabase.auth.signOut();
-            loginSection.style.display = 'block';
-            dashboardSection.style.display = 'none';
-            authMessage.textContent = 'Logged out successfully.';
-        });
+        })();
 
         // Handle Authentication State
         async function handleAuthState(user) {
             if (user) {
                 try {
+                    console.log('Handling auth state for user:', user.id);
                     const { data: profile } = await supabase
                         .from('profiles')
                         .select('role, full_name')
@@ -376,7 +385,6 @@
         async function refreshData(role) {
             authMessage.textContent = `Refreshing ${role} data...`;
             try {
-                // Simulate data refresh (replace with real API calls)
                 setTimeout(() => {
                     authMessage.textContent = `${role} data refreshed!`;
                 }, 1000);
@@ -384,15 +392,6 @@
                 authMessage.textContent = `Refresh failed: ${error.message}`;
             }
         }
-
-        // Auth State Change Listener
-        supabase.auth.onAuthStateChange((event, session) => {
-            if (event === 'SIGNED_IN') handleAuthState(session.user);
-            if (event === 'SIGNED_OUT') {
-                loginSection.style.display = 'block';
-                dashboardSection.style.display = 'none';
-            }
-        });
     </script>
 </body>
 </html>
