@@ -3,99 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Joburg Market - Daily Price List</title>
+    <title>Joburg Market - Login & Roles</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-        body { 
-            margin: 0; 
-            font-family: 'Inter', sans-serif; 
-            background: linear-gradient(135deg, #f6f8f7 0%, #e8f0e8 100%); 
-            color: #333; 
-            line-height: 1.6; 
-        }
+        body { margin: 0; font-family: 'Inter', sans-serif; background: linear-gradient(135deg, #f6f8f7 0%, #e8f0e8 100%); color: #333; line-height: 1.6; }
         .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
-        .header { 
-            background: linear-gradient(90deg, #0f5d3a 0%, #1a7a4e 100%); 
-            color: white; 
-            padding: 20px; 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            border-radius: 12px; 
-            margin-bottom: 30px; 
-            box-shadow: 0 4px 20px rgba(15,93,58,0.1); 
-        }
+        .header { background: linear-gradient(90deg, #0f5d3a 0%, #1a7a4e 100%); color: white; padding: 20px; display: flex; justify-content: space-between; align-items: center; border-radius: 12px; margin-bottom: 30px; box-shadow: 0 4px 20px rgba(15,93,58,0.1); }
         .logo-section { display: flex; align-items: center; gap: 20px; }
-        .joburg-logo { height: 50px; } /* Placeholder for Joburg Market logo */
-        .kdot-logo { height: 40px; } /* Placeholder for K-Dot Solutions logo */
+        .joburg-logo { height: 50px; }
+        .kdot-logo { height: 40px; }
         .title { font-size: 28px; font-weight: 700; margin: 0; }
         .main { display: grid; grid-template-columns: 1fr; gap: 30px; }
-        .section { 
-            background: rgba(255,255,255,0.9); 
-            padding: 30px; 
-            border-radius: 16px; 
-            box-shadow: 0 8px 32px rgba(0,0,0,0.05); 
-            backdrop-filter: blur(10px); 
-            border: 1px solid rgba(255,255,255,0.2); 
-            transition: transform 0.3s ease; 
-        }
+        .section { background: rgba(255,255,255,0.9); padding: 30px; border-radius: 16px; box-shadow: 0 8px 32px rgba(0,0,0,0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.2); transition: transform 0.3s ease; }
         .section:hover { transform: translateY(-2px); }
-        .section h2 { 
-            color: #0f5d3a; 
-            font-size: 24px; 
-            margin-bottom: 20px; 
-            display: flex; 
-            align-items: center; 
-            gap: 10px; 
-        }
-        .section h3 { color: #1a7a4e; font-size: 20px; margin: 25px 0 15px 0; border-left: 4px solid #f4c430; padding-left: 15px; }
-        .price-table { 
-            width: 100%; 
-            border-collapse: collapse; 
-            font-size: 14px; 
-            background: white; 
-            border-radius: 12px; 
-            overflow: hidden; 
-            box-shadow: 0 4px 16px rgba(0,0,0,0.05); 
-        }
-        .price-row { 
-            border-bottom: 1px solid #e8f0e8; 
-            transition: background 0.2s ease; 
-        }
-        .price-row:hover { background: #f8f9fa; }
-        .price-row th, .price-row td { 
-            padding: 12px 16px; 
-            text-align: left; 
-        }
-        .price-row th { 
-            background: linear-gradient(90deg, #0f5d3a, #1a7a4e); 
-            color: white; 
-            font-weight: 600; 
-            text-transform: uppercase; 
-            letter-spacing: 0.5px; 
-        }
-        .price-cell { 
-            font-weight: 500; 
-            color: #0f5d3a; 
-        }
-        .price-value { 
-            font-weight: 600; 
-            color: #f4c430; 
-            font-family: 'Courier New', monospace; 
-        }
-        .footer { 
-            text-align: center; 
-            margin-top: 40px; 
-            padding: 20px; 
-            color: #666; 
-            font-size: 12px; 
-            border-top: 1px solid #e8f0e8; 
-        }
-        @media (max-width: 768px) { 
-            .container { padding: 10px; } 
-            .header { flex-direction: column; gap: 10px; text-align: center; } 
-            .price-row th, .price-row td { padding: 8px 10px; font-size: 12px; } 
-        }
+        .section h2 { color: #0f5d3a; font-size: 24px; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+        .form-group { margin-bottom: 15px; }
+        .input { padding: 12px; border: 1px solid #d1d9d9; border-radius: 8px; width: 100%; font-size: 14px; transition: border 0.3s ease; }
+        .input:focus { border-color: #0f5d3a; outline: none; }
+        .btn { background: linear-gradient(135deg, #f4c430 0%, #e6b800 100%); color: #0f5d3a; padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.3s ease; box-shadow: 0 2px 8px rgba(244,196,48,0.3); }
+        .btn:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(244,196,48,0.4); }
+        .google-btn { background: #ffffff; color: #0f5d3a; border: 1px solid #d1d9d9; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .google-btn:hover { background: #f8f9fa; }
+        .dashboard { display: none; padding: 20px; }
+        .footer { text-align: center; margin-top: 40px; padding: 20px; color: #666; font-size: 12px; border-top: 1px solid #e8f0e8; }
+        @media (max-width: 768px) { .container { padding: 10px; } .header { flex-direction: column; gap: 10px; text-align: center; } }
     </style>
 </head>
 <body>
@@ -108,102 +39,37 @@
             </div>
         </header>
         <main class="main">
-            <div class="section">
-                <h2>Daily Price List <span style="color: #666; font-size: 16px;">(October 15, 2025)</span></h2>
-                <p style="color: #666; margin-bottom: 20px">Fresh produce prices determined by supply, demand, and quality. All transactions via smart card system.</p>
-                <div>
-                    <h3>Vegetables</h3>
-                    <table class="price-table">
-                        <thead>
-                            <tr class="price-row">
-                                <th>Commodity</th>
-                                <th>Price</th>
-                                <th>Unit</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr class="price-row"><td class="price-cell">Baby Marrow</td><td class="price-value">R 8.00</td><td class="price-cell">/kg</td></tr>
-                            <tr class="price-row"><td class="price-cell">Beetroot</td><td class="price-value">R 12.50</td><td class="price-cell">/kg</td></tr>
-                            <tr class="price-row"><td class="price-cell">Broccoli</td><td class="price-value">R 25.00</td><td class="price-cell">/kg</td></tr>
-                            <tr class="price-row"><td class="price-cell">Brussels Sprouts</td><td class="price-value">R 35.00</td><td class="price-cell">/kg</td></tr>
-                            <tr class="price-row"><td class="price-cell">Butternut</td><td class="price-value">R 9.50</td><td class="price-cell">/kg</td></tr>
-                            <tr class="price-row"><td class="price-cell">Cabbage - Green</td><td class="price-value">R 6.00</td><td class="price-cell">/each</td></tr>
-                            <tr class="price-row"><td class="price-cell">Cabbage - Red</td><td class="price-value">R 8.50</td><td class="price-cell">/each</td></tr>
-                            <tr class="price-row"><td class="price-cell">Carrots</td><td class="price-value">R 10.00</td><td class="price-cell">/kg</td></tr>
-                            <tr class="price-row"><td class="price-cell">Cauliflower</td><td class="price-value">R 18.00</td><td class="price-cell">/each</td></tr>
-                            <tr class="price-row"><td class="price-cell">Celery</td><td class="price-value">R 15.00</td><td class="price-cell">/bunch</td></tr>
-                            <tr class="price-row"><td class="price-cell">Chillies</td><td class="price-value">R 45.00</td><td class="price-cell">/kg</td></tr>
-                            <tr class="price-row"><td class="price-cell">Corn</td><td class="price-value">R 22.00</td><td class="price-cell">/each</td></tr>
-                            <tr class="price-row"><td class="price-cell">Cucumber</td><td class="price-value">R 12.00</td><td class="price-cell">/kg</td></tr>
-                            <tr class="price-row"><td class="price-cell">Gem Squash</td><td class="price-value">R 18.00</td><td class="price-cell">/each</td></tr>
-                            <tr class="price-row"><td class="price-cell">Green Beans</td><td class="price-value">R 28.00</td><td class="price-cell">/kg</td></tr>
-                            <tr class="price-row"><td class="price-cell">Green Pepper</td><td class="price-value">R 25.00</td><td class="price-cell">/kg</td></tr>
-                            <tr class="price-row"><td class="price-cell">Leeks</td><td class="price-value">R 20.00</td><td class="price-cell">/kg</td></tr>
-                            <tr class="price-row"><td class="price-cell">Lettuce</td><td class="price-value">R 9.00</td><td class="price-cell">/head</td></tr>
-                            <tr class="price-row"><td class="price-cell">Onions - Brown</td><td class="price-value">R 11.00</td><td class="price-cell">/kg</td></tr>
-                            <tr class="price-row"><td class="price-cell">Onions - Red</td><td class="price-value">R 15.00</td><td class="price-cell">/kg</td></tr>
-                            <tr class="price-row"><td class="price-cell">Patty Pans</td><td class="price-value">R 22.00</td><td class="price-cell">/kg</td></tr>
-                            <tr class="price-row"><td class="price-cell">Potatoes</td><td class="price-value">R 7.50</td><td class="price-cell">/kg</td></tr>
-                            <tr class="price-row"><td class="price-cell">Pumpkin - Crown</td><td class="price-value">R 5.00</td><td class="price-cell">/kg</td></tr>
-                            <tr class="price-row"><td class="price-cell">Red Pepper</td><td class="price-value">R 30.00</td><td class="price-cell">/kg</td></tr>
-                            <tr class="price-row"><td class="price-cell">Spinach - Baby Leaf</td><td class="price-value">R 18.00</td><td class="price-cell">/200g</td></tr>
-                            <tr class="price-row"><td class="price-cell">Spinach - Bunch</td><td class="price-value">R 12.00</td><td class="price-cell">/bunch</td></tr>
-                            <tr class="price-row"><td class="price-cell">Sweet Corn</td><td class="price-value">R 20.00</td><td class="price-cell">/each</td></tr>
-                            <tr class="price-row"><td class="price-cell">Sweet Potato</td><td class="price-value">R 10.00</td><td class="price-cell">/kg</td></tr>
-                            <tr class="price-row"><td class="price-cell">Tomatoes</td><td class="price-value">R 14.00</td><td class="price-cell">/kg</td></tr>
-                            <tr class="price-row"><td class="price-cell">Yellow Pepper</td><td class="price-value">R 28.00</td><td class="price-cell">/kg</td></tr>
-                            <tr class="price-row"><td class="price-cell">Zucchini</td><td class="price-value">R 16.00</td><td class="price-cell">/kg</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-                <div>
-                    <h3>Fruits</h3>
-                    <table class="price-table">
-                        <thead>
-                            <tr class="price-row">
-                                <th>Commodity</th>
-                                <th>Price</th>
-                                <th>Unit</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr class="price-row"><td class="price-cell">Apples - Golden Delicious</td><td class="price-value">R 22.00</td><td class="price-cell">/kg</td></tr>
-                            <tr class="price-row"><td class="price-cell">Apples - Granny Smith</td><td class="price-value">R 24.00</td><td class="price-cell">/kg</td></tr>
-                            <tr class="price-row"><td class="price-cell">Avocado</td><td class="price-value">R 35.00</td><td class="price-cell">/each</td></tr>
-                            <tr class="price-row"><td class="price-cell">Bananas</td><td class="price-value">R 18.00</td><td class="price-cell">/kg</td></tr>
-                            <tr class="price-row"><td class="price-cell">Grapes - Black Seedless</td><td class="price-value">R 32.00</td><td class="price-cell">/kg</td></tr>
-                            <tr class="price-row"><td class="price-cell">Grapes - Green Seedless</td><td class="price-value">R 28.00</td><td class="price-cell">/kg</td></tr>
-                            <tr class="price-row"><td class="price-cell">Kiwi Fruit</td><td class="price-value">R 45.00</td><td class="price-cell">/each</td></tr>
-                            <tr class="price-row"><td class="price-cell">Lemons</td><td class="price-value">R 20.00</td><td class="price-cell">/kg</td></tr>
-                            <tr class="price-row"><td class="price-cell">Mangoes</td><td class="price-value">R 25.00</td><td class="price-cell">/each</td></tr>
-                            <tr class="price-row"><td class="price-cell">Nectarines</td><td class="price-value">R 30.00</td><td class="price-cell">/kg</td></tr>
-                            <tr class="price-row"><td class="price-cell">Oranges - Navel</td><td class="price-value">R 15.00</td><td class="price-cell">/kg</td></tr>
-                            <tr class="price-row"><td class="price-cell">Pears - Packham</td><td class="price-value">R 26.00</td><td class="price-cell">/kg</td></tr>
-                            <tr class="price-row"><td class="price-cell">Pineapple</td><td class="price-value">R 28.00</td><td class="price-cell">/each</td></tr>
-                            <tr class="price-row"><td class="price-cell">Plums</td><td class="price-value">R 22.00</td><td class="price-cell">/kg</td></tr>
-                            <tr class="price-row"><td class="price-cell">Strawberries</td><td class="price-value">R 50.00</td><td class="price-cell">/250g</td></tr>
-                            <tr class="price-row"><td class="price-cell">Watermelon</td><td class="price-value">R 8.00</td><td class="price-cell">/kg</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-                <div>
-                    <h3>Herbs</h3>
-                    <table class="price-table">
-                        <thead>
-                            <tr class="price-row">
-                                <th>Commodity</th>
-                                <th>Price</th>
-                                <th>Unit</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr class="price-row"><td class="price-cell">Basil</td><td class="price-value">R 15.00</td><td class="price-cell">/bunch</td></tr>
-                            <tr class="price-row"><td class="price-cell">Coriander</td><td class="price-value">R 12.00</td><td class="price-cell">/bunch</td></tr>
-                            <tr class="price-row"><td class="price-cell">Mint</td><td class="price-value">R 10.00</td><td class="price-cell">/bunch</td></tr>
-                            <tr class="price-row"><td class="price-cell">Parsley</td><td class="price-value">R 14.00</td><td class="price-cell">/bunch</td></tr>
-                        </tbody>
-                    </table>
-                </div>
+            <div class="section" id="loginSection">
+                <h2>Login or Register</h2>
+                <p>Access the Joburg Market platform. Log in with your email or Google account.</p>
+                <form id="loginForm" style="max-width: 400px;">
+                    <div class="form-group">
+                        <input class="input" type="email" id="email" placeholder="Email" required>
+                    </div>
+                    <div class="form-group">
+                        <input class="input" type="password" id="password" placeholder="Password" required>
+                    </div>
+                    <div class="form-group">
+                        <select class="input" id="userType" required>
+                            <option value="">Select User Type</option>
+                            <option value="farmer">Farmer / Producer / Supplier</option>
+                            <option value="trader">Trader / Buyer / Vendor</option>
+                            <option value="admin">Market Admin / Operator</option>
+                            <option value="logistics">Logistics / Transport</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn" style="width: 100%; margin-top: 10px;">Login</button>
+                    <button type="button" class="btn google-btn" id="googleLogin" style="width: 100%; margin-top: 10px;">
+                        <img src="https://www.google.com/favicon.ico" alt="Google Icon" style="width: 20px; height: 20px;"> Login with Google
+                    </button>
+                    <button type="button" class="btn" id="registerBtn" style="width: 100%; margin-top: 10px; background: #ffffff; color: #0f5d3a; border: 1px solid #0f5d3a;">Register</button>
+                </form>
+                <p id="authMessage" style="margin-top: 10px; color: #0f5d3a;"></p>
+            </div>
+            <div class="section dashboard" id="dashboardSection">
+                <h2>Welcome, <span id="userName"></span> (<span id="userRole"></span>)</h2>
+                <p id="dashboardContent">Your dashboard will display features based on your role. Please log in to view.</p>
+                <button class="btn" id="logoutBtn" style="margin-top: 10px;">Logout</button>
             </div>
         </main>
         <footer class="footer">
@@ -214,5 +80,183 @@
             </div>
         </footer>
     </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        const supabaseUrl = 'https://xvcehitgpuvzagjttecc.supabase.co';
+        const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2Y2VoaXRncHV2emFnanR0ZWNjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA0MjMyODMsImV4cCI6MjA3NTk5OTI4M30.UQs15hRbGPwJxhbx2b4dr2oMN5T2ZX9pP0T5pTi3FWU';
+        const supabase = supabase.createClient(supabaseUrl, supabaseAnonKey);
+
+        const loginSection = document.getElementById('loginSection');
+        const dashboardSection = document.getElementById('dashboardSection');
+        const loginForm = document.getElementById('loginForm');
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
+        const userTypeSelect = document.getElementById('userType');
+        const googleLoginBtn = document.getElementById('googleLogin');
+        const registerBtn = document.getElementById('registerBtn');
+        const authMessage = document.getElementById('authMessage');
+        const userName = document.getElementById('userName');
+        const userRole = document.getElementById('userRole');
+        const dashboardContent = document.getElementById('dashboardContent');
+        const logoutBtn = document.getElementById('logoutBtn');
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) handleAuthState(session.user);
+        });
+
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = emailInput.value;
+            const password = passwordInput.value;
+            const userType = userTypeSelect.value;
+
+            const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+            if (error) {
+                authMessage.textContent = `Login failed: ${error.message}`;
+                return;
+            }
+            await updateProfile(userType);
+            handleAuthState(data.user);
+        });
+
+        googleLoginBtn.addEventListener('click', async () => {
+            const { data, error } = await supabase.auth.signInWithOAuth({
+                provider: 'google',
+                options: {
+                    redirectTo: window.location.href
+                }
+            });
+            if (error) {
+                authMessage.textContent = `Google login failed: ${error.message}`;
+                return;
+            }
+        });
+
+        registerBtn.addEventListener('click', async () => {
+            const email = emailInput.value;
+            const password = passwordInput.value;
+            const userType = userTypeSelect.value;
+
+            if (!email || !password || !userType) {
+                authMessage.textContent = 'Please fill all fields';
+                return;
+            }
+
+            const { data, error } = await supabase.auth.signUp({
+                email,
+                password,
+                options: {
+                    data: { role: userType }
+                }
+            });
+            if (error) {
+                authMessage.textContent = `Registration failed: ${error.message}`;
+                return;
+            }
+            authMessage.textContent = 'Registration successful! Please check your email for verification.';
+        });
+
+        logoutBtn.addEventListener('click', async () => {
+            await supabase.auth.signOut();
+            loginSection.style.display = 'block';
+            dashboardSection.style.display = 'none';
+            authMessage.textContent = 'Logged out successfully.';
+        });
+
+        async function handleAuthState(user) {
+            if (user) {
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('role, full_name')
+                    .eq('id', user.id)
+                    .single();
+                userName.textContent = profile?.full_name || user.email.split('@')[0];
+                userRole.textContent = profile?.role || 'guest';
+                loginSection.style.display = 'none';
+                dashboardSection.style.display = 'block';
+
+                switch (profile?.role) {
+                    case 'farmer':
+                        dashboardContent.innerHTML = `
+                            <h3>Farmer Dashboard</h3>
+                            <ul>
+                                <li><a href="#" onclick="loadProduceForm()">List Produce</a></li>
+                                <li>Set minimal pricing</li>
+                                <li>Notify buyers of availability</li>
+                                <li>View analytics of past sales</li>
+                                <li>Track order history</li>
+                                <li>Manage deliveries</li>
+                            </ul>
+                        `;
+                        break;
+                    case 'trader':
+                        dashboardContent.innerHTML = `
+                            <h3>Trader Dashboard</h3>
+                            <ul>
+                                <li>Browse available produce</li>
+                                <li>View live pricing / recent trades</li>
+                                <li><a href="#" onclick="placeOrder()">Place Order</a></li>
+                                <li>Request deliveries</li>
+                                <li>Payments via smart card / wallet</li>
+                                <li>Alerts for deals</li>
+                            </ul>
+                        `;
+                        break;
+                    case 'admin':
+                        dashboardContent.innerHTML = `
+                            <h3>Admin Dashboard</h3>
+                            <ul>
+                                <li>Real-time dashboard on volumes, pricing</li>
+                                <li>Manage listings & categories</li>
+                                <li>Audit and settlement</li>
+                                <li>Notification & alerts</li>
+                            </ul>
+                        `;
+                        break;
+                    case 'logistics':
+                        dashboardContent.innerHTML = `
+                            <h3>Logistics Dashboard</h3>
+                            <ul>
+                                <li>Route optimization for delivery</li>
+                                <li>Track shipments</li>
+                                <li>Coordinate loading/unloading</li>
+                                <li>Integrate with produce orders</li>
+                            </ul>
+                        `;
+                        break;
+                    default:
+                        dashboardContent.textContent = 'Please contact support to assign a role.';
+                }
+            }
+        }
+
+        async function updateProfile(userType) {
+            const { error } = await supabase.from('profiles').upsert({
+                id: (await supabase.auth.getUser()).data.user.id,
+                role: userType,
+                full_name: prompt('Enter your full name:', '')
+            }, { onConflict: 'id' });
+            if (error) console.error('Profile update failed:', error.message);
+        }
+
+        // Placeholder functions (to be expanded with forms/API calls)
+        function loadProduceForm() {
+            alert('Form to list produce would appear here.');
+        }
+
+        function placeOrder() {
+            alert('Order placement form would appear here.');
+        }
+
+        supabase.auth.onAuthStateChange((event, session) => {
+            if (event === 'SIGNED_IN') handleAuthState(session.user);
+            if (event === 'SIGNED_OUT') {
+                loginSection.style.display = 'block';
+                dashboardSection.style.display = 'none';
+            }
+        });
+    </script>
 </body>
 </html>
