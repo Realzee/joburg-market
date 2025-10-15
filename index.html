@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Joburg Market - Login & Dashboard</title>
-    <link rel="icon" href="./src/assets/favicon.ico" type="image/x-icon"> <!-- Suppress 404 for favicon -->
+    <link rel="icon" href="./src/assets/favicon.ico" type="image/x-icon">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
         body { margin: 0; font-family: 'Inter', sans-serif; background: linear-gradient(135deg, #f6f8f7 0%, #e8f0e8 100%); color: #333; line-height: 1.6; }
@@ -28,6 +28,8 @@
         .dashboard { display: none; padding: 20px; }
         .feature-form { display: none; margin-top: 15px; padding: 10px; border: 1px solid #d1d9d9; border-radius: 8px; background: #f8f9fa; }
         .footer { text-align: center; margin-top: 40px; padding: 20px; color: #666; font-size: 12px; border-top: 1px solid #e8f0e8; }
+        .error-message { color: #d32f2f; background: #ffebee; padding: 10px; border-radius: 8px; margin: 10px 0; }
+        .success-message { color: #0f5d3a; background: #e8f5e8; padding: 10px; border-radius: 8px; margin: 10px 0; }
         @media (max-width: 768px) { 
             .container { padding: 10px; } 
             .header { flex-direction: column; gap: 10px; text-align: center; } 
@@ -74,7 +76,7 @@
                     </button>
                     <button type="button" class="btn" id="registerBtn" style="width: 100%; margin-top: 10px; background: #ffffff; color: #0f5d3a; border: 1px solid #0f5d3a;">Register</button>
                 </form>
-                <p id="authMessage" style="margin-top: 10px; color: #0f5d3a;"></p>
+                <div id="authMessage"></div>
             </div>
             <div class="section dashboard" id="dashboardSection">
                 <h2>Welcome, <span id="userName"></span> (<span id="userRole"></span>)</h2>
@@ -93,16 +95,27 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
-        // Global Supabase initialization with readiness check
-        let supabase;
-        try {
-            const supabaseUrl = 'https://xvcehitgpuvzagjttecc.supabase.co';
-            const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2Y2VoaXRncHV2emFnanR0ZWNjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA0MjMyODMsImV4cCI6MjA3NTk5OTI4M30.UQs15hRbGPwJxhbx2b4dr2oMN5T2ZX9pP0T5pTi3FWU';
-            supabase = supabase.createClient(supabaseUrl, supabaseAnonKey);
-            console.log('Supabase initialized successfully');
-        } catch (error) {
-            console.error('Supabase initialization failed:', error);
-            alert('Failed to initialize application. Check console for details.');
+        // Global Supabase initialization with better error handling
+        let supabase = null;
+
+        function initializeSupabase() {
+            try {
+                // Check if Supabase is available
+                if (typeof supabase === 'undefined' || !window.supabase) {
+                    throw new Error('Supabase library not loaded properly');
+                }
+
+                const supabaseUrl = 'https://xvcehitgpuvzagjttecc.supabase.co';
+                const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2Y2VoaXRncHV2emFnanR0ZWNjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA0MjMyODMsImV4cCI6MjA3NTk5OTI4M30.UQs15hRbGPwJxhbx2b4dr2oMN5T2ZX9pP0T5pTi3FWU';
+                
+                supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+                console.log('Supabase initialized successfully');
+                return true;
+            } catch (error) {
+                console.error('Supabase initialization failed:', error);
+                showMessage('Failed to initialize application. Please refresh the page.', 'error');
+                return false;
+            }
         }
 
         // DOM Elements
@@ -120,63 +133,119 @@
         const dashboardContent = document.getElementById('dashboardContent');
         const logoutBtn = document.getElementById('logoutBtn');
 
-        // Initialize application
-        (async () => {
-            if (!supabase) {
-                console.error('Supabase not initialized');
-                authMessage.textContent = 'Application failed to start due to initialization error.';
+        // Utility function to show messages
+        function showMessage(message, type = 'info') {
+            const className = type === 'error' ? 'error-message' : 
+                            type === 'success' ? 'success-message' : '';
+            authMessage.innerHTML = `<div class="${className}">${message}</div>`;
+        }
+
+        // Initialize application when DOM is loaded
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Initialize Supabase first
+            if (!initializeSupabase()) {
                 return;
             }
+
             console.log('Initializing app with Supabase...');
 
             try {
-                const { data: { session } } = await supabase.auth.getSession();
-                if (session) await handleAuthState(session.user);
+                // Check for existing session
+                const { data: { session }, error } = await supabase.auth.getSession();
+                if (error) {
+                    console.error('Session check failed:', error);
+                } else if (session) {
+                    await handleAuthState(session.user);
+                }
 
-                // Event Listeners
-                loginForm.addEventListener('submit', async (e) => {
-                    e.preventDefault();
-                    const email = emailInput.value;
-                    const password = passwordInput.value;
-                    const userType = userTypeSelect.value;
+                // Set up event listeners
+                setupEventListeners();
+            } catch (error) {
+                console.error('Initialization error:', error);
+                showMessage(`App initialization failed: ${error.message}`, 'error');
+            }
+        });
 
-                    if (!email || !password || !userType) {
-                        authMessage.textContent = 'Please fill all fields';
-                        return;
-                    }
+        function setupEventListeners() {
+            // Login form submission
+            loginForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                if (!supabase) {
+                    showMessage('Application not initialized properly', 'error');
+                    return;
+                }
 
+                const email = emailInput.value;
+                const password = passwordInput.value;
+                const userType = userTypeSelect.value;
+
+                if (!email || !password || !userType) {
+                    showMessage('Please fill all fields', 'error');
+                    return;
+                }
+
+                showMessage('Logging in...', 'info');
+
+                try {
                     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
                     if (error) {
-                        authMessage.textContent = `Login failed: ${error.message}`;
+                        showMessage(`Login failed: ${error.message}`, 'error');
                         return;
                     }
+                    
+                    // Update profile with user type if needed
                     await updateProfile(userType);
                     await handleAuthState(data.user);
-                });
+                    showMessage('Login successful!', 'success');
+                } catch (error) {
+                    showMessage(`Login failed: ${error.message}`, 'error');
+                }
+            });
 
-                googleLoginBtn.addEventListener('click', async () => {
-                    const { data, error } = await supabase.auth.signInWithOAuth({
+            // Google login
+            googleLoginBtn.addEventListener('click', async () => {
+                if (!supabase) {
+                    showMessage('Application not initialized properly', 'error');
+                    return;
+                }
+
+                showMessage('Redirecting to Google...', 'info');
+
+                try {
+                    const { error } = await supabase.auth.signInWithOAuth({
                         provider: 'google',
                         options: {
                             redirectTo: window.location.href
                         }
                     });
                     if (error) {
-                        authMessage.textContent = `Google login failed: ${error.message}`;
-                        return;
+                        showMessage(`Google login failed: ${error.message}`, 'error');
+                    return;
                     }
-                });
+                } catch (error) {
+                    showMessage(`Google login failed: ${error.message}`, 'error');
+                }
+            });
 
-                registerBtn.addEventListener('click', async () => {
-                    const email = emailInput.value;
-                    const password = passwordInput.value;
-                    const userType = userTypeSelect.value;
+            // Registration
+            registerBtn.addEventListener('click', async () => {
+                if (!supabase) {
+                    showMessage('Application not initialized properly', 'error');
+                    return;
+                }
 
-                    if (!email || !password || !userType) {
-                        authMessage.textContent = 'Please fill all fields';
-                        return;
-                    }
+                const email = emailInput.value;
+                const password = passwordInput.value;
+                const userType = userTypeSelect.value;
 
+                if (!email || !password || !userType) {
+                    showMessage('Please fill all fields', 'error');
+                    return;
+                }
+
+                showMessage('Registering...', 'info');
+
+                try {
                     const { data, error } = await supabase.auth.signUp({
                         email,
                         password,
@@ -185,142 +254,177 @@
                         }
                     });
                     if (error) {
-                        authMessage.textContent = `Registration failed: ${error.message}`;
+                        showMessage(`Registration failed: ${error.message}`, 'error');
                         return;
                     }
-                    authMessage.textContent = 'Registration successful! Please check your email for verification.';
-                });
+                    showMessage('Registration successful! Please check your email for verification.', 'success');
+                } catch (error) {
+                    showMessage(`Registration failed: ${error.message}`, 'error');
+                }
+            });
 
-                logoutBtn.addEventListener('click', async () => {
+            // Logout
+            logoutBtn.addEventListener('click', async () => {
+                if (!supabase) {
+                    showMessage('Application not initialized properly', 'error');
+                    return;
+                }
+
+                try {
                     await supabase.auth.signOut();
                     loginSection.style.display = 'block';
                     dashboardSection.style.display = 'none';
-                    authMessage.textContent = 'Logged out successfully.';
-                });
-            } catch (error) {
-                console.error('Initialization error:', error);
-                authMessage.textContent = `App initialization failed: ${error.message}`;
-            }
-        })();
+                    showMessage('Logged out successfully.', 'success');
+                } catch (error) {
+                    showMessage(`Logout failed: ${error.message}`, 'error');
+                }
+            });
+        }
 
         // Handle Authentication State
         async function handleAuthState(user) {
             if (user && supabase) {
                 try {
                     console.log('Handling auth state for user:', user.id);
-                    const { data: profile } = await supabase
+                    
+                    // Get or create user profile
+                    let { data: profile, error } = await supabase
                         .from('profiles')
                         .select('role, full_name')
                         .eq('id', user.id)
                         .single();
-                    if (!profile) {
-                        await updateProfile(userTypeSelect.value || 'guest');
-                        return handleAuthState(user); // Retry after profile creation
-                    }
-                    userName.textContent = profile.full_name || user.email.split('@')[0];
-                    userRole.textContent = profile.role || 'guest';
-                    loginSection.style.display = 'none';
-                    dashboardSection.style.display = 'block';
 
-                    let content = '';
-                    switch (profile.role) {
-                        case 'farmer':
-                            content = `
-                                <h3>Farmer Dashboard</h3>
-                                <button class="btn" onclick="refreshData('farmer')">Refresh Data</button>
-                                <ul>
-                                    <li><a href="#" onclick="showForm('listProduce')">List Produce</a></li>
-                                    <div id="listProduce" class="feature-form" style="display:none;">
-                                        <input class="input" type="text" placeholder="Name" id="produceName">
-                                        <input class="input" type="number" placeholder="Quantity (kg)" id="produceQty" step="0.01">
-                                        <input class="input" type="number" placeholder="Price per kg" id="producePrice" step="0.01">
-                                        <select class="input" id="produceGrade">
-                                            <option value="A">A</option><option value="B">B</option><option value="C">C</option>
-                                        </select>
-                                        <button class="btn" onclick="addProduce()">Add Produce</button>
-                                    </div>
-                                    <li>Set Pricing</li>
-                                    <li>Notify Buyers</li>
-                                    <li><a href="#" onclick="showAnalytics()">View Analytics</a></li>
-                                    <div id="analytics" class="feature-form" style="display:none;">Loading analytics...</div>
-                                    <li>Track Orders</li>
-                                    <li>Manage Deliveries</li>
-                                </ul>
-                            `;
-                            break;
-                        case 'trader':
-                            content = `
-                                <h3>Trader Dashboard</h3>
-                                <button class="btn" onclick="refreshData('trader')">Refresh Data</button>
-                                <ul>
-                                    <li>Browse Produce</li>
-                                    <li>View Pricing</li>
-                                    <li><a href="#" onclick="showForm('placeOrder')">Place Order</a></li>
-                                    <div id="placeOrder" class="feature-form" style="display:none;">
-                                        <input class="input" type="text" placeholder="Produce ID" id="orderProduceId">
-                                        <input class="input" type="number" placeholder="Quantity (kg)" id="orderQty" step="0.01">
-                                        <button class="btn" onclick="submitOrder()">Submit Order</button>
-                                    </div>
-                                    <li>Request Deliveries</li>
-                                    <li>Wallet Payments</li>
-                                    <li>Deal Alerts</li>
-                                </ul>
-                            `;
-                            break;
-                        case 'admin':
-                            content = `
-                                <h3>Admin Dashboard</h3>
-                                <button class="btn" onclick="refreshData('admin')">Refresh Data</button>
-                                <ul>
-                                    <li>Real-Time Dashboard</li>
-                                    <li>Manage Listings</li>
-                                    <li>Audit & Settlement</li>
-                                    <li>Notifications</li>
-                                </ul>
-                            `;
-                            break;
-                        case 'logistics':
-                            content = `
-                                <h3>Logistics Dashboard</h3>
-                                <button class="btn" onclick="refreshData('logistics')">Refresh Data</button>
-                                <ul>
-                                    <li>Route Optimization</li>
-                                    <li>Track Shipments</li>
-                                    <li>Coordinate Loading</li>
-                                    <li>Order Integration</li>
-                                </ul>
-                            `;
-                            break;
-                        default:
-                            content = 'Please contact support to assign a role.';
+                    if (error || !profile) {
+                        console.log('No profile found, creating default profile');
+                        // Create a default profile
+                        const userType = userTypeSelect.value || 'guest';
+                        await updateProfile(userType);
+                        // Retry getting profile
+                        const result = await supabase
+                            .from('profiles')
+                            .select('role, full_name')
+                            .eq('id', user.id)
+                            .single();
+                        profile = result.data;
                     }
-                    dashboardContent.innerHTML = content;
+
+                    if (profile) {
+                        userName.textContent = profile.full_name || user.email.split('@')[0];
+                        userRole.textContent = profile.role || 'guest';
+                        loginSection.style.display = 'none';
+                        dashboardSection.style.display = 'block';
+                        renderDashboard(profile.role);
+                    }
                 } catch (error) {
-                    console.error('Auth state error:', error.message);
-                    authMessage.textContent = `Dashboard load failed: ${error.message}`;
+                    console.error('Auth state error:', error);
+                    showMessage(`Dashboard load failed: ${error.message}`, 'error');
                 }
             }
+        }
+
+        // Render Dashboard based on user role
+        function renderDashboard(role) {
+            let content = '';
+            switch (role) {
+                case 'farmer':
+                    content = `
+                        <h3>Farmer Dashboard</h3>
+                        <button class="btn" onclick="refreshData('farmer')">Refresh Data</button>
+                        <ul>
+                            <li><a href="#" onclick="showForm('listProduce')">List Produce</a></li>
+                            <div id="listProduce" class="feature-form" style="display:none;">
+                                <input class="input" type="text" placeholder="Name" id="produceName">
+                                <input class="input" type="number" placeholder="Quantity (kg)" id="produceQty" step="0.01">
+                                <input class="input" type="number" placeholder="Price per kg" id="producePrice" step="0.01">
+                                <select class="input" id="produceGrade">
+                                    <option value="A">A</option><option value="B">B</option><option value="C">C</option>
+                                </select>
+                                <button class="btn" onclick="addProduce()">Add Produce</button>
+                            </div>
+                            <li>Set Pricing</li>
+                            <li>Notify Buyers</li>
+                            <li><a href="#" onclick="showAnalytics()">View Analytics</a></li>
+                            <div id="analytics" class="feature-form" style="display:none;">Loading analytics...</div>
+                            <li>Track Orders</li>
+                            <li>Manage Deliveries</li>
+                        </ul>
+                    `;
+                    break;
+                case 'trader':
+                    content = `
+                        <h3>Trader Dashboard</h3>
+                        <button class="btn" onclick="refreshData('trader')">Refresh Data</button>
+                        <ul>
+                            <li>Browse Produce</li>
+                            <li>View Pricing</li>
+                            <li><a href="#" onclick="showForm('placeOrder')">Place Order</a></li>
+                            <div id="placeOrder" class="feature-form" style="display:none;">
+                                <input class="input" type="text" placeholder="Produce ID" id="orderProduceId">
+                                <input class="input" type="number" placeholder="Quantity (kg)" id="orderQty" step="0.01">
+                                <button class="btn" onclick="submitOrder()">Submit Order</button>
+                            </div>
+                            <li>Request Deliveries</li>
+                            <li>Wallet Payments</li>
+                            <li>Deal Alerts</li>
+                        </ul>
+                    `;
+                    break;
+                case 'admin':
+                    content = `
+                        <h3>Admin Dashboard</h3>
+                        <button class="btn" onclick="refreshData('admin')">Refresh Data</button>
+                        <ul>
+                            <li>Real-Time Dashboard</li>
+                            <li>Manage Listings</li>
+                            <li>Audit & Settlement</li>
+                            <li>Notifications</li>
+                        </ul>
+                    `;
+                    break;
+                case 'logistics':
+                    content = `
+                        <h3>Logistics Dashboard</h3>
+                        <button class="btn" onclick="refreshData('logistics')">Refresh Data</button>
+                        <ul>
+                            <li>Route Optimization</li>
+                            <li>Track Shipments</li>
+                            <li>Coordinate Loading</li>
+                            <li>Order Integration</li>
+                        </ul>
+                    `;
+                    break;
+                default:
+                    content = 'Please contact support to assign a role.';
+            }
+            dashboardContent.innerHTML = content;
         }
 
         // Update Profile
         async function updateProfile(userType) {
             if (!supabase) return;
+            
             const fullName = prompt('Enter your full name:', '');
             if (!fullName || !userType) {
-                authMessage.textContent = 'Full name and user type are required';
+                showMessage('Full name and user type are required', 'error');
                 return;
             }
+            
             try {
+                const { data: { user }, error: userError } = await supabase.auth.getUser();
+                if (userError) throw userError;
+
                 const { error } = await supabase.from('profiles').upsert({
-                    id: (await supabase.auth.getUser()).data.user.id,
+                    id: user.id,
                     role: userType,
-                    full_name: fullName
+                    full_name: fullName,
+                    updated_at: new Date().toISOString()
                 }, { onConflict: 'id' });
+                
                 if (error) throw error;
-                authMessage.textContent = 'Profile updated successfully!';
+                showMessage('Profile updated successfully!', 'success');
             } catch (error) {
-                console.error('Profile update failed:', error.message);
-                authMessage.textContent = `Profile update failed: ${error.message}`;
+                console.error('Profile update failed:', error);
+                showMessage(`Profile update failed: ${error.message}`, 'error');
             }
         }
 
@@ -332,61 +436,81 @@
 
         // Add Produce
         async function addProduce() {
-            if (!supabase) return;
+            if (!supabase) {
+                showMessage('Application not initialized', 'error');
+                return;
+            }
+            
             const name = document.getElementById('produceName').value;
             const qty = parseFloat(document.getElementById('produceQty').value);
             const price = parseFloat(document.getElementById('producePrice').value);
             const grade = document.getElementById('produceGrade').value;
 
             if (!name || isNaN(qty) || isNaN(price) || !grade) {
-                authMessage.textContent = 'Please fill all fields with valid data';
+                showMessage('Please fill all fields with valid data', 'error');
                 return;
             }
 
             try {
-                const { data, error } = await supabase.from('produce').insert({
-                    name, quantity_kg: qty, price_per_kg: price, quality_grade: grade,
-                    farmer_id: (await supabase.auth.getUser()).data.user.id
+                const { data: { user }, error: userError } = await supabase.auth.getUser();
+                if (userError) throw userError;
+
+                const { error } = await supabase.from('produce').insert({
+                    name, 
+                    quantity_kg: qty, 
+                    price_per_kg: price, 
+                    quality_grade: grade,
+                    farmer_id: user.id
                 });
+                
                 if (error) throw error;
-                authMessage.textContent = 'Produce added successfully!';
+                showMessage('Produce added successfully!', 'success');
                 document.getElementById('listProduce').style.display = 'none';
             } catch (error) {
-                authMessage.textContent = `Add failed: ${error.message}`;
+                showMessage(`Add failed: ${error.message}`, 'error');
             }
         }
 
         // Submit Order
         async function submitOrder() {
-            if (!supabase) return;
+            if (!supabase) {
+                showMessage('Application not initialized', 'error');
+                return;
+            }
+            
             const produceId = document.getElementById('orderProduceId').value;
             const qty = parseFloat(document.getElementById('orderQty').value);
 
             if (!produceId || isNaN(qty)) {
-                authMessage.textContent = 'Please fill all fields with valid data';
+                showMessage('Please fill all fields with valid data', 'error');
                 return;
             }
 
             try {
-                const { data: produce } = await supabase
+                const { data: produce, error: produceError } = await supabase
                     .from('produce')
                     .select('price_per_kg')
                     .eq('id', produceId)
                     .single();
-                if (!produce) throw new Error('Invalid produce ID');
+                    
+                if (produceError || !produce) throw new Error('Invalid produce ID');
 
-                const { data, error } = await supabase.from('orders').insert({
+                const { data: { user }, error: userError } = await supabase.auth.getUser();
+                if (userError) throw userError;
+
+                const { error } = await supabase.from('orders').insert({
                     produce_id: produceId,
                     quantity_kg: qty,
-                    buyer_id: (await supabase.auth.getUser()).data.user.id,
+                    buyer_id: user.id,
                     total_amount: qty * produce.price_per_kg,
                     status: 'pending'
                 });
+                
                 if (error) throw error;
-                authMessage.textContent = 'Order placed successfully!';
+                showMessage('Order placed successfully!', 'success');
                 document.getElementById('placeOrder').style.display = 'none';
             } catch (error) {
-                authMessage.textContent = `Order failed: ${error.message}`;
+                showMessage(`Order failed: ${error.message}`, 'error');
             }
         }
 
@@ -398,25 +522,32 @@
 
         // Refresh Data
         async function refreshData(role) {
-            if (!supabase) return;
-            authMessage.textContent = `Refreshing ${role} data...`;
+            if (!supabase) {
+                showMessage('Application not initialized', 'error');
+                return;
+            }
+            
+            showMessage(`Refreshing ${role} data...`, 'info');
             try {
                 setTimeout(() => {
-                    authMessage.textContent = `${role} data refreshed!`;
+                    showMessage(`${role} data refreshed!`, 'success');
                 }, 1000);
             } catch (error) {
-                authMessage.textContent = `Refresh failed: ${error.message}`;
+                showMessage(`Refresh failed: ${error.message}`, 'error');
             }
         }
 
-        // Auth State Change Listener (outside initialization)
-        if (supabase) {
+        // Auth State Change Listener
+        if (typeof supabase !== 'undefined' && supabase) {
             supabase.auth.onAuthStateChange((event, session) => {
-                if (event === 'SIGNED_IN') handleAuthState(session.user);
+                console.log('Auth state changed:', event);
+                if (event === 'SIGNED_IN' && session) {
+                    handleAuthState(session.user);
+                }
                 if (event === 'SIGNED_OUT') {
                     loginSection.style.display = 'block';
                     dashboardSection.style.display = 'none';
-                    authMessage.textContent = 'Logged out successfully.';
+                    showMessage('Logged out successfully.', 'success');
                 }
             });
         }
