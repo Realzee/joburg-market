@@ -33,6 +33,10 @@
         .success-message { color: #0f5d3a; background: #e8f5e8; padding: 10px; border-radius: 8px; margin: 10px 0; border: 1px solid #c3e6cb; }
         .info-message { color: #0c5460; background: #d1ecf1; padding: 10px; border-radius: 8px; margin: 10px 0; border: 1px solid #bee5eb; }
         .loading { opacity: 0.6; pointer-events: none; }
+        .status-indicator { position: fixed; top: 10px; right: 10px; padding: 8px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; z-index: 1000; }
+        .status-connected { background: #4caf50; color: white; }
+        .status-demo { background: #ff9800; color: white; }
+        .status-error { background: #f44336; color: white; }
         @media (max-width: 768px) { 
             .container { padding: 10px; } 
             .header { flex-direction: column; gap: 10px; text-align: center; } 
@@ -45,6 +49,8 @@
     </style>
 </head>
 <body>
+    <div id="statusIndicator" class="status-indicator status-demo" style="display: none;">Loading...</div>
+    
     <div class="container">
         <header class="header">
             <div class="logo-section">
@@ -83,9 +89,7 @@
             </div>
             <div class="section dashboard" id="dashboardSection">
                 <h2>Welcome, <span id="userName"></span> (<span id="userRole"></span>)</h2>
-                <div id="dashboardContent">
-                    <div class="info-message">Demo Mode: Authentication is currently in demo mode. Full functionality will be available when Supabase is properly configured.</div>
-                </div>
+                <div id="dashboardContent"></div>
                 <button class="btn" id="logoutBtn" style="margin-top: 10px;">Logout</button>
             </div>
         </main>
@@ -98,453 +102,547 @@
         </footer>
     </div>
 
+    <!-- Load Supabase from CDN with error handling -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.0/dist/umd/supabase.min.js"></script>
     <script>
-        // Application State
-        const AppState = {
-            supabase: null,
-            isInitialized: false,
-            currentUser: null,
-            isDemoMode: true
-        };
+        // Enhanced Supabase initialization with multiple fallbacks
+        class JoburgMarketApp {
+            constructor() {
+                this.supabase = null;
+                this.isInitialized = false;
+                this.isDemoMode = false;
+                this.currentUser = null;
+                this.elements = {};
+                this.initialize();
+            }
 
-        // DOM Elements
-        const elements = {
-            loginSection: document.getElementById('loginSection'),
-            dashboardSection: document.getElementById('dashboardSection'),
-            loginForm: document.getElementById('loginForm'),
-            emailInput: document.getElementById('email'),
-            passwordInput: document.getElementById('password'),
-            userTypeSelect: document.getElementById('userType'),
-            googleLoginBtn: document.getElementById('googleLogin'),
-            registerBtn: document.getElementById('registerBtn'),
-            loginBtn: document.getElementById('loginBtn'),
-            authMessage: document.getElementById('authMessage'),
-            userName: document.getElementById('userName'),
-            userRole: document.getElementById('userRole'),
-            dashboardContent: document.getElementById('dashboardContent'),
-            logoutBtn: document.getElementById('logoutBtn')
-        };
-
-        // Utility Functions
-        const utils = {
-            showMessage(message, type = 'info') {
-                const className = type === 'error' ? 'error-message' : 
-                                type === 'success' ? 'success-message' : 'info-message';
-                elements.authMessage.innerHTML = `<div class="${className}">${message}</div>`;
-            },
-
-            setLoading(loading) {
-                const buttons = [elements.loginBtn, elements.googleLoginBtn, elements.registerBtn];
-                buttons.forEach(btn => {
-                    btn.disabled = loading;
-                    if (loading) {
-                        btn.classList.add('loading');
-                    } else {
-                        btn.classList.remove('loading');
-                    }
+            initialize() {
+                this.setupStatusIndicator('Initializing...', 'demo');
+                this.cacheElements();
+                this.initializeSupabase().then(() => {
+                    this.setupEventListeners();
+                    this.checkExistingSession();
                 });
-            },
-
-            generateId() {
-                return 'demo_' + Math.random().toString(36).substr(2, 9);
             }
-        };
 
-        // Demo Mode Functions (when Supabase fails to load)
-        const demoMode = {
-            async signIn(email, password, userType) {
-                await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
-                
-                if (!email || !password || !userType) {
-                    throw new Error('Please fill all fields');
-                }
-
-                const user = {
-                    id: utils.generateId(),
-                    email: email,
-                    user_metadata: { role: userType }
+            cacheElements() {
+                this.elements = {
+                    statusIndicator: document.getElementById('statusIndicator'),
+                    loginSection: document.getElementById('loginSection'),
+                    dashboardSection: document.getElementById('dashboardSection'),
+                    loginForm: document.getElementById('loginForm'),
+                    emailInput: document.getElementById('email'),
+                    passwordInput: document.getElementById('password'),
+                    userTypeSelect: document.getElementById('userType'),
+                    googleLoginBtn: document.getElementById('googleLogin'),
+                    registerBtn: document.getElementById('registerBtn'),
+                    loginBtn: document.getElementById('loginBtn'),
+                    authMessage: document.getElementById('authMessage'),
+                    userName: document.getElementById('userName'),
+                    userRole: document.getElementById('userRole'),
+                    dashboardContent: document.getElementById('dashboardContent'),
+                    logoutBtn: document.getElementById('logoutBtn')
                 };
-
-                localStorage.setItem('demoUser', JSON.stringify(user));
-                return { user, error: null };
-            },
-
-            async signUp(email, password, userType) {
-                await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
-                
-                if (!email || !password || !userType) {
-                    throw new Error('Please fill all fields');
-                }
-
-                const user = {
-                    id: utils.generateId(),
-                    email: email,
-                    user_metadata: { role: userType }
-                };
-
-                localStorage.setItem('demoUser', JSON.stringify(user));
-                return { user, error: null };
-            },
-
-            getSession() {
-                const demoUser = localStorage.getItem('demoUser');
-                if (demoUser) {
-                    return { 
-                        data: { 
-                            session: { 
-                                user: JSON.parse(demoUser) 
-                            } 
-                        } 
-                    };
-                }
-                return { data: { session: null } };
-            },
-
-            signOut() {
-                localStorage.removeItem('demoUser');
-                return { error: null };
             }
-        };
 
-        // Initialize Application
-        async function initializeApp() {
-            try {
-                utils.showMessage('Initializing application...', 'info');
-                
-                // Try to load Supabase
-                if (typeof supabase !== 'undefined') {
+            async initializeSupabase() {
+                try {
+                    this.showMessage('Loading Supabase...', 'info');
+                    
+                    // Method 1: Check if Supabase is available via CDN
+                    if (typeof window.supabase !== 'undefined' && window.supabase.createClient) {
+                        console.log('Supabase found via CDN');
+                        await this.createSupabaseClient();
+                        return;
+                    }
+
+                    // Method 2: Try dynamic import as fallback
+                    try {
+                        console.log('Trying dynamic import...');
+                        const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.0/+esm');
+                        window.supabase = { createClient };
+                        await this.createSupabaseClient();
+                        return;
+                    } catch (importError) {
+                        console.warn('Dynamic import failed:', importError);
+                    }
+
+                    // Method 3: Final fallback - load via script tag
+                    await this.loadSupabaseViaScript();
+                    
+                } catch (error) {
+                    console.error('All Supabase initialization methods failed:', error);
+                    this.handleSupabaseFailure();
+                }
+            }
+
+            async createSupabaseClient() {
+                try {
                     const supabaseUrl = 'https://xvcehitgpuvzagjttecc.supabase.co';
                     const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2Y2VoaXRncHV2emFnanR0ZWNjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA0MjMyODMsImV4cCI6MjA3NTk5OTI4M30.UQs15hRbGPwJxhbx2b4dr2oMN5T2ZX9pP0T5pTi3FWU';
                     
-                    AppState.supabase = supabase.createClient(supabaseUrl, supabaseAnonKey);
-                    AppState.isInitialized = true;
-                    AppState.isDemoMode = false;
-                    elements.googleLoginBtn.disabled = false;
-                    utils.showMessage('Application initialized successfully!', 'success');
+                    this.supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey, {
+                        auth: {
+                            persistSession: true,
+                            autoRefreshToken: true
+                        }
+                    });
+
+                    // Test the connection
+                    const { data, error } = await this.supabase.from('profiles').select('count').limit(1);
+                    
+                    if (error) {
+                        console.warn('Supabase connection test warning:', error.message);
+                        // Continue anyway - might be auth issue rather than connection issue
+                    }
+
+                    this.isInitialized = true;
+                    this.isDemoMode = false;
+                    this.elements.googleLoginBtn.disabled = false;
+                    
+                    this.setupAuthListener();
+                    this.setupStatusIndicator('Connected to Supabase', 'connected');
+                    this.showMessage('Supabase initialized successfully!', 'success');
                     console.log('Supabase initialized successfully');
-                } else {
-                    throw new Error('Supabase library not available');
+
+                } catch (error) {
+                    throw new Error(`Supabase client creation failed: ${error.message}`);
                 }
-            } catch (error) {
-                console.warn('Supabase initialization failed, running in demo mode:', error);
-                AppState.isDemoMode = true;
-                utils.showMessage('Running in demo mode. Some features may be limited.', 'info');
             }
 
-            // Check for existing session
-            await checkExistingSession();
-            setupEventListeners();
-        }
+            loadSupabaseViaScript() {
+                return new Promise((resolve, reject) => {
+                    if (window.supabase && window.supabase.createClient) {
+                        resolve();
+                        return;
+                    }
 
-        // Check for existing session
-        async function checkExistingSession() {
-            try {
-                let session = null;
+                    const script = document.createElement('script');
+                    script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.0/dist/umd/supabase.min.js';
+                    script.onload = () => {
+                        setTimeout(() => {
+                            if (window.supabase && window.supabase.createClient) {
+                                resolve();
+                            } else {
+                                reject(new Error('Supabase not available after script load'));
+                            }
+                        }, 100);
+                    };
+                    script.onerror = () => reject(new Error('Failed to load Supabase script'));
+                    document.head.appendChild(script);
+                });
+            }
+
+            handleSupabaseFailure() {
+                this.isDemoMode = true;
+                this.setupStatusIndicator('Demo Mode - Supabase Unavailable', 'error');
+                this.showMessage('Running in demo mode. Authentication will use local storage.', 'info');
+                this.checkExistingSession();
+            }
+
+            setupStatusIndicator(text, type) {
+                const indicator = this.elements.statusIndicator;
+                indicator.textContent = text;
+                indicator.className = `status-indicator status-${type}`;
+                indicator.style.display = 'block';
+            }
+
+            setupAuthListener() {
+                if (!this.supabase) return;
+
+                this.supabase.auth.onAuthStateChange((event, session) => {
+                    console.log('Auth state changed:', event);
+                    if (event === 'SIGNED_IN' && session) {
+                        this.handleAuthState(session.user);
+                    } else if (event === 'SIGNED_OUT') {
+                        this.handleSignOut();
+                    }
+                });
+            }
+
+            setupEventListeners() {
+                // Login form
+                this.elements.loginForm.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.handleLogin();
+                });
+
+                // Register button
+                this.elements.registerBtn.addEventListener('click', () => {
+                    this.handleRegister();
+                });
+
+                // Google login
+                this.elements.googleLoginBtn.addEventListener('click', () => {
+                    this.handleGoogleLogin();
+                });
+
+                // Logout
+                this.elements.logoutBtn.addEventListener('click', () => {
+                    this.handleLogout();
+                });
+            }
+
+            async checkExistingSession() {
+                try {
+                    let session = null;
+                    
+                    if (this.isInitialized && !this.isDemoMode) {
+                        const { data } = await this.supabase.auth.getSession();
+                        session = data.session;
+                    } else {
+                        session = this.getDemoSession();
+                    }
+
+                    if (session) {
+                        await this.handleAuthState(session.user);
+                    }
+                } catch (error) {
+                    console.error('Session check failed:', error);
+                }
+            }
+
+            // Demo mode functions
+            getDemoSession() {
+                const demoUser = localStorage.getItem('demoUser');
+                return demoUser ? { user: JSON.parse(demoUser) } : null;
+            }
+
+            async demoSignIn(email, password, userType) {
+                await new Promise(resolve => setTimeout(resolve, 1000));
                 
-                if (AppState.isInitialized && !AppState.isDemoMode) {
-                    const result = await AppState.supabase.auth.getSession();
-                    session = result.data.session;
-                } else {
-                    const result = demoMode.getSession();
-                    session = result.data.session;
+                if (!email || !password || !userType) {
+                    throw new Error('Please fill all fields');
                 }
 
-                if (session) {
-                    await handleAuthState(session.user);
-                }
-            } catch (error) {
-                console.error('Session check failed:', error);
+                const user = {
+                    id: 'demo_' + Math.random().toString(36).substr(2, 9),
+                    email: email,
+                    user_metadata: { role: userType }
+                };
+
+                localStorage.setItem('demoUser', JSON.stringify(user));
+                return { user, error: null };
             }
-        }
 
-        // Setup Event Listeners
-        function setupEventListeners() {
-            // Login form
-            elements.loginForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                await handleLogin();
-            });
+            async demoSignUp(email, password, userType) {
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                if (!email || !password || !userType) {
+                    throw new Error('Please fill all fields');
+                }
 
-            // Register button
-            elements.registerBtn.addEventListener('click', async () => {
-                await handleRegister();
-            });
+                const user = {
+                    id: 'demo_' + Math.random().toString(36).substr(2, 9),
+                    email: email,
+                    user_metadata: { role: userType }
+                };
 
-            // Google login
-            elements.googleLoginBtn.addEventListener('click', async () => {
-                if (AppState.isDemoMode) {
-                    utils.showMessage('Google login not available in demo mode. Please use email registration.', 'info');
+                localStorage.setItem('demoUser', JSON.stringify(user));
+                return { user, error: null };
+            }
+
+            // Authentication handlers
+            async handleLogin() {
+                const email = this.elements.emailInput.value;
+                const password = this.elements.passwordInput.value;
+                const userType = this.elements.userTypeSelect.value;
+
+                if (!email || !password || !userType) {
+                    this.showMessage('Please fill all fields', 'error');
                     return;
                 }
-                await handleGoogleLogin();
-            });
 
-            // Logout
-            elements.logoutBtn.addEventListener('click', async () => {
-                await handleLogout();
-            });
-        }
+                this.setLoading(true);
+                this.showMessage('Logging in...', 'info');
 
-        // Authentication Handlers
-        async function handleLogin() {
-            const email = elements.emailInput.value;
-            const password = elements.passwordInput.value;
-            const userType = elements.userTypeSelect.value;
+                try {
+                    let result;
+                    
+                    if (this.isInitialized && !this.isDemoMode) {
+                        result = await this.supabase.auth.signInWithPassword({ email, password });
+                    } else {
+                        result = await this.demoSignIn(email, password, userType);
+                    }
 
-            if (!email || !password || !userType) {
-                utils.showMessage('Please fill all fields', 'error');
-                return;
+                    if (result.error) {
+                        throw new Error(result.error.message);
+                    }
+
+                    await this.handleAuthState(result.user);
+                    this.showMessage('Login successful!', 'success');
+                } catch (error) {
+                    this.showMessage(`Login failed: ${error.message}`, 'error');
+                } finally {
+                    this.setLoading(false);
+                }
             }
 
-            utils.setLoading(true);
-            utils.showMessage('Logging in...', 'info');
+            async handleRegister() {
+                const email = this.elements.emailInput.value;
+                const password = this.elements.passwordInput.value;
+                const userType = this.elements.userTypeSelect.value;
 
-            try {
-                let result;
-                
-                if (AppState.isInitialized && !AppState.isDemoMode) {
-                    result = await AppState.supabase.auth.signInWithPassword({ email, password });
-                } else {
-                    result = await demoMode.signIn(email, password, userType);
+                if (!email || !password || !userType) {
+                    this.showMessage('Please fill all fields', 'error');
+                    return;
                 }
 
-                if (result.error) {
-                    throw new Error(result.error.message);
+                this.setLoading(true);
+                this.showMessage('Registering...', 'info');
+
+                try {
+                    let result;
+                    
+                    if (this.isInitialized && !this.isDemoMode) {
+                        result = await this.supabase.auth.signUp({
+                            email,
+                            password,
+                            options: { data: { role: userType } }
+                        });
+                    } else {
+                        result = await this.demoSignUp(email, password, userType);
+                    }
+
+                    if (result.error) {
+                        throw new Error(result.error.message);
+                    }
+
+                    await this.handleAuthState(result.user);
+                    this.showMessage('Registration successful!', 'success');
+                } catch (error) {
+                    this.showMessage(`Registration failed: ${error.message}`, 'error');
+                } finally {
+                    this.setLoading(false);
+                }
+            }
+
+            async handleGoogleLogin() {
+                if (this.isDemoMode) {
+                    this.showMessage('Google login not available in demo mode', 'info');
+                    return;
                 }
 
-                await handleAuthState(result.user);
-                utils.showMessage('Login successful!', 'success');
-            } catch (error) {
-                utils.showMessage(`Login failed: ${error.message}`, 'error');
-            } finally {
-                utils.setLoading(false);
-            }
-        }
-
-        async function handleRegister() {
-            const email = elements.emailInput.value;
-            const password = elements.passwordInput.value;
-            const userType = elements.userTypeSelect.value;
-
-            if (!email || !password || !userType) {
-                utils.showMessage('Please fill all fields', 'error');
-                return;
-            }
-
-            utils.setLoading(true);
-            utils.showMessage('Registering...', 'info');
-
-            try {
-                let result;
-                
-                if (AppState.isInitialized && !AppState.isDemoMode) {
-                    result = await AppState.supabase.auth.signUp({
-                        email,
-                        password,
-                        options: { data: { role: userType } }
+                try {
+                    this.showMessage('Redirecting to Google...', 'info');
+                    const { error } = await this.supabase.auth.signInWithOAuth({
+                        provider: 'google',
+                        options: { redirectTo: window.location.href }
                     });
-                } else {
-                    result = await demoMode.signUp(email, password, userType);
+                    
+                    if (error) throw error;
+                } catch (error) {
+                    this.showMessage(`Google login failed: ${error.message}`, 'error');
                 }
-
-                if (result.error) {
-                    throw new Error(result.error.message);
-                }
-
-                await handleAuthState(result.user);
-                utils.showMessage('Registration successful!', 'success');
-            } catch (error) {
-                utils.showMessage(`Registration failed: ${error.message}`, 'error');
-            } finally {
-                utils.setLoading(false);
-            }
-        }
-
-        async function handleGoogleLogin() {
-            if (!AppState.isInitialized || AppState.isDemoMode) {
-                utils.showMessage('Google login not available', 'error');
-                return;
             }
 
-            try {
-                const { error } = await AppState.supabase.auth.signInWithOAuth({
-                    provider: 'google',
-                    options: { redirectTo: window.location.href }
-                });
+            async handleLogout() {
+                try {
+                    if (this.isInitialized && !this.isDemoMode) {
+                        await this.supabase.auth.signOut();
+                    } else {
+                        localStorage.removeItem('demoUser');
+                    this.handleSignOut();
+                    return;
+                    }
+
+                    this.handleSignOut();
+                    this.showMessage('Logged out successfully.', 'success');
+                } catch (error) {
+                    this.showMessage(`Logout failed: ${error.message}`, 'error');
+                }
+            }
+
+            handleSignOut() {
+                this.elements.loginSection.style.display = 'block';
+                this.elements.dashboardSection.style.display = 'none';
+                this.elements.loginForm.reset();
+                this.currentUser = null;
+            }
+
+            async handleAuthState(user) {
+                if (!user) return;
+
+                this.currentUser = user;
                 
-                if (error) throw error;
-            } catch (error) {
-                utils.showMessage(`Google login failed: ${error.message}`, 'error');
-            }
-        }
+                const userName = user.email.split('@')[0];
+                const userRole = user.user_metadata?.role || 'user';
 
-        async function handleLogout() {
-            try {
-                if (AppState.isInitialized && !AppState.isDemoMode) {
-                    await AppState.supabase.auth.signOut();
+                this.elements.userName.textContent = userName;
+                this.elements.userRole.textContent = userRole;
+                this.elements.loginSection.style.display = 'none';
+                this.elements.dashboardSection.style.display = 'block';
+
+                this.renderDashboard(userRole);
+            }
+
+            renderDashboard(role) {
+                let content = '';
+                
+                if (this.isDemoMode) {
+                    content += `<div class="info-message">Demo Mode: Using local storage. Real database operations disabled.</div>`;
                 } else {
-                    demoMode.signOut();
+                    content += `<div class="success-message">Connected to Supabase - Full functionality available!</div>`;
                 }
 
-                elements.loginSection.style.display = 'block';
-                elements.dashboardSection.style.display = 'none';
-                elements.loginForm.reset();
-                utils.showMessage('Logged out successfully.', 'success');
-                AppState.currentUser = null;
-            } catch (error) {
-                utils.showMessage(`Logout failed: ${error.message}`, 'error');
-            }
-        }
+                // Dashboard content based on role
+                switch (role) {
+                    case 'farmer':
+                        content += this.getFarmerDashboard();
+                        break;
+                    case 'trader':
+                        content += this.getTraderDashboard();
+                        break;
+                    case 'admin':
+                        content += this.getAdminDashboard();
+                        break;
+                    case 'logistics':
+                        content += this.getLogisticsDashboard();
+                        break;
+                    default:
+                        content += 'Please contact support to assign a role.';
+                }
 
-        // Handle Authentication State
-        async function handleAuthState(user) {
-            if (!user) return;
-
-            AppState.currentUser = user;
-            
-            const userName = user.email.split('@')[0];
-            const userRole = user.user_metadata?.role || 'user';
-
-            elements.userName.textContent = userName;
-            elements.userRole.textContent = userRole;
-            elements.loginSection.style.display = 'none';
-            elements.dashboardSection.style.display = 'block';
-
-            renderDashboard(userRole);
-        }
-
-        // Render Dashboard
-        function renderDashboard(role) {
-            let content = '';
-            
-            if (AppState.isDemoMode) {
-                content += `<div class="info-message">Demo Mode: You are currently using demo functionality. Real database operations are disabled.</div>`;
+                this.elements.dashboardContent.innerHTML = content;
             }
 
-            switch (role) {
-                case 'farmer':
-                    content += `
-                        <h3>Farmer Dashboard</h3>
-                        <button class="btn" onclick="refreshData('farmer')">Refresh Data</button>
-                        <ul>
-                            <li><a href="#" onclick="showForm('listProduce')">List Produce</a></li>
-                            <div id="listProduce" class="feature-form" style="display:none;">
-                                <input class="input" type="text" placeholder="Name" id="produceName">
-                                <input class="input" type="number" placeholder="Quantity (kg)" id="produceQty" step="0.01">
-                                <input class="input" type="number" placeholder="Price per kg" id="producePrice" step="0.01">
-                                <select class="input" id="produceGrade">
-                                    <option value="A">A</option><option value="B">B</option><option value="C">C</option>
-                                </select>
-                                <button class="btn" onclick="addProduce()">Add Produce</button>
-                            </div>
-                            <li>Set Pricing</li>
-                            <li>Notify Buyers</li>
-                            <li><a href="#" onclick="showAnalytics()">View Analytics</a></li>
-                            <div id="analytics" class="feature-form" style="display:none;">
-                                <p>Analytics data would be displayed here in production mode.</p>
-                            </div>
-                            <li>Track Orders</li>
-                            <li>Manage Deliveries</li>
-                        </ul>
-                    `;
-                    break;
-                case 'trader':
-                    content += `
-                        <h3>Trader Dashboard</h3>
-                        <button class="btn" onclick="refreshData('trader')">Refresh Data</button>
-                        <ul>
-                            <li>Browse Produce</li>
-                            <li>View Pricing</li>
-                            <li><a href="#" onclick="showForm('placeOrder')">Place Order</a></li>
-                            <div id="placeOrder" class="feature-form" style="display:none;">
-                                <input class="input" type="text" placeholder="Produce ID" id="orderProduceId">
-                                <input class="input" type="number" placeholder="Quantity (kg)" id="orderQty" step="0.01">
-                                <button class="btn" onclick="submitOrder()">Submit Order</button>
-                            </div>
-                            <li>Request Deliveries</li>
-                            <li>Wallet Payments</li>
-                            <li>Deal Alerts</li>
-                        </ul>
-                    `;
-                    break;
-                case 'admin':
-                    content += `
-                        <h3>Admin Dashboard</h3>
-                        <button class="btn" onclick="refreshData('admin')">Refresh Data</button>
-                        <ul>
-                            <li>Real-Time Dashboard</li>
-                            <li>Manage Listings</li>
-                            <li>Audit & Settlement</li>
-                            <li>Notifications</li>
-                        </ul>
-                    `;
-                    break;
-                case 'logistics':
-                    content += `
-                        <h3>Logistics Dashboard</h3>
-                        <button class="btn" onclick="refreshData('logistics')">Refresh Data</button>
-                        <ul>
-                            <li>Route Optimization</li>
-                            <li>Track Shipments</li>
-                            <li>Coordinate Loading</li>
-                            <li>Order Integration</li>
-                        </ul>
-                    `;
-                    break;
-                default:
-                    content += 'Please contact support to assign a role.';
+            getFarmerDashboard() {
+                return `
+                    <h3>Farmer Dashboard</h3>
+                    <button class="btn" onclick="app.refreshData('farmer')">Refresh Data</button>
+                    <ul>
+                        <li><a href="#" onclick="app.showForm('listProduce')">List Produce</a></li>
+                        <div id="listProduce" class="feature-form" style="display:none;">
+                            <input class="input" type="text" placeholder="Name" id="produceName">
+                            <input class="input" type="number" placeholder="Quantity (kg)" id="produceQty" step="0.01">
+                            <input class="input" type="number" placeholder="Price per kg" id="producePrice" step="0.01">
+                            <select class="input" id="produceGrade">
+                                <option value="A">A</option><option value="B">B</option><option value="C">C</option>
+                            </select>
+                            <button class="btn" onclick="app.addProduce()">Add Produce</button>
+                        </div>
+                        <li>Set Pricing</li>
+                        <li>Notify Buyers</li>
+                        <li><a href="#" onclick="app.showAnalytics()">View Analytics</a></li>
+                        <div id="analytics" class="feature-form" style="display:none;">
+                            <p>Analytics data would be displayed here.</p>
+                        </div>
+                        <li>Track Orders</li>
+                        <li>Manage Deliveries</li>
+                    </ul>
+                `;
             }
 
-            elements.dashboardContent.innerHTML = content;
-        }
-
-        // Feature Functions
-        function showForm(id) {
-            const form = document.getElementById(id);
-            if (form) {
-                form.style.display = form.style.display === 'block' ? 'none' : 'block';
+            getTraderDashboard() {
+                return `
+                    <h3>Trader Dashboard</h3>
+                    <button class="btn" onclick="app.refreshData('trader')">Refresh Data</button>
+                    <ul>
+                        <li>Browse Produce</li>
+                        <li>View Pricing</li>
+                        <li><a href="#" onclick="app.showForm('placeOrder')">Place Order</a></li>
+                        <div id="placeOrder" class="feature-form" style="display:none;">
+                            <input class="input" type="text" placeholder="Produce ID" id="orderProduceId">
+                            <input class="input" type="number" placeholder="Quantity (kg)" id="orderQty" step="0.01">
+                            <button class="btn" onclick="app.submitOrder()">Submit Order</button>
+                        </div>
+                        <li>Request Deliveries</li>
+                        <li>Wallet Payments</li>
+                        <li>Deal Alerts</li>
+                    </ul>
+                `;
             }
-        }
 
-        function showAnalytics() {
-            const analytics = document.getElementById('analytics');
-            if (analytics) {
-                analytics.style.display = analytics.style.display === 'block' ? 'none' : 'block';
-                if (analytics.style.display === 'block') {
-                    analytics.innerHTML = AppState.isDemoMode ? 
-                        '<p>Demo Analytics: In production, this would show real data.</p>' :
-                        '<p>Loading analytics data...</p>';
+            getAdminDashboard() {
+                return `
+                    <h3>Admin Dashboard</h3>
+                    <button class="btn" onclick="app.refreshData('admin')">Refresh Data</button>
+                    <ul>
+                        <li>Real-Time Dashboard</li>
+                        <li>Manage Listings</li>
+                        <li>Audit & Settlement</li>
+                        <li>Notifications</li>
+                    </ul>
+                `;
+            }
+
+            getLogisticsDashboard() {
+                return `
+                    <h3>Logistics Dashboard</h3>
+                    <button class="btn" onclick="app.refreshData('logistics')">Refresh Data</button>
+                    <ul>
+                        <li>Route Optimization</li>
+                        <li>Track Shipments</li>
+                        <li>Coordinate Loading</li>
+                        <li>Order Integration</li>
+                    </ul>
+                `;
+            }
+
+            // Utility methods
+            showMessage(message, type = 'info') {
+                const className = type === 'error' ? 'error-message' : 
+                                type === 'success' ? 'success-message' : 'info-message';
+                this.elements.authMessage.innerHTML = `<div class="${className}">${message}</div>`;
+            }
+
+            setLoading(loading) {
+                const buttons = [this.elements.loginBtn, this.elements.googleLoginBtn, this.elements.registerBtn];
+                buttons.forEach(btn => {
+                    btn.disabled = loading;
+                    btn.classList.toggle('loading', loading);
+                });
+            }
+
+            // Public methods for onclick handlers
+            showForm(id) {
+                const form = document.getElementById(id);
+                if (form) {
+                    form.style.display = form.style.display === 'block' ? 'none' : 'block';
+                }
+            }
+
+            showAnalytics() {
+                const analytics = document.getElementById('analytics');
+                if (analytics) {
+                    analytics.style.display = analytics.style.display === 'block' ? 'none' : 'block';
+                }
+            }
+
+            refreshData(role) {
+                this.showMessage(`Refreshing ${role} data...`, 'info');
+                setTimeout(() => {
+                    this.showMessage(`${role} data refreshed successfully!`, 'success');
+                }, 1000);
+            }
+
+            addProduce() {
+                if (this.isDemoMode) {
+                    this.showMessage('Demo: Produce would be added to database in production mode.', 'info');
+                    this.showForm('listProduce');
+                } else {
+                    this.showMessage('Adding produce to database...', 'info');
+                }
+            }
+
+            submitOrder() {
+                if (this.isDemoMode) {
+                    this.showMessage('Demo: Order would be submitted in production mode.', 'info');
+                    this.showForm('placeOrder');
+                } else {
+                    this.showMessage('Submitting order...', 'info');
                 }
             }
         }
 
-        function refreshData(role) {
-            utils.showMessage(`Refreshing ${role} data...`, 'info');
-            setTimeout(() => {
-                utils.showMessage(`${role} data refreshed successfully!`, 'success');
-            }, 1000);
-        }
+        // Initialize the app when the page loads
+        let app;
+        document.addEventListener('DOMContentLoaded', () => {
+            app = new JoburgMarketApp();
+        });
 
-        function addProduce() {
-            if (AppState.isDemoMode) {
-                utils.showMessage('Demo: Produce would be added to database in production mode.', 'info');
-                showForm('listProduce');
-            } else {
-                utils.showMessage('Adding produce to database...', 'info');
-            }
-        }
-
-        function submitOrder() {
-            if (AppState.isDemoMode) {
-                utils.showMessage('Demo: Order would be submitted in production mode.', 'info');
-                showForm('placeOrder');
-            } else {
-                utils.showMessage('Submitting order...', 'info');
-            }
-        }
-
-        // Initialize the application when the page loads
-        document.addEventListener('DOMContentLoaded', initializeApp);
+        // Make app available globally for onclick handlers
+        window.app = app;
     </script>
 </body>
 </html>
