@@ -3,106 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Joburg Market - Interactive Dashboard</title>
+    <title>Joburg Market - Login & Dashboard</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-        body { 
-            margin: 0; 
-            font-family: 'Inter', sans-serif; 
-            background: linear-gradient(135deg, #f6f8f7 0%, #e8f0e8 100%); 
-            color: #333; 
-            line-height: 1.6; 
-        }
+        body { margin: 0; font-family: 'Inter', sans-serif; background: linear-gradient(135deg, #f6f8f7 0%, #e8f0e8 100%); color: #333; line-height: 1.6; }
         .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
-        .header { 
-            background: linear-gradient(90deg, #0f5d3a 0%, #1a7a4e 100%); 
-            color: white; 
-            padding: 20px; 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            border-radius: 12px; 
-            margin-bottom: 30px; 
-            box-shadow: 0 4px 20px rgba(15,93,58,0.1); 
-        }
+        .header { background: linear-gradient(90deg, #0f5d3a 0%, #1a7a4e 100%); color: white; padding: 20px; display: flex; justify-content: space-between; align-items: center; border-radius: 12px; margin-bottom: 30px; box-shadow: 0 4px 20px rgba(15,93,58,0.1); }
         .logo-section { display: flex; align-items: center; gap: 20px; }
-        .joburg-logo { height: 50px; } /* Placeholder for Joburg Market logo */
-        .kdot-logo { height: 40px; } /* Placeholder for K-Dot Solutions logo */
+        .joburg-logo { height: 50px; }
+        .kdot-logo { height: 40px; }
         .title { font-size: 28px; font-weight: 700; margin: 0; }
         .main { display: grid; grid-template-columns: 1fr; gap: 30px; }
-        .section { 
-            background: rgba(255,255,255,0.9); 
-            padding: 30px; 
-            border-radius: 16px; 
-            box-shadow: 0 8px 32px rgba(0,0,0,0.05); 
-            backdrop-filter: blur(10px); 
-            border: 1px solid rgba(255,255,255,0.2); 
-            transition: transform 0.3s ease; 
-        }
+        .section { background: rgba(255,255,255,0.9); padding: 30px; border-radius: 16px; box-shadow: 0 8px 32px rgba(0,0,0,0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.2); transition: transform 0.3s ease; }
         .section:hover { transform: translateY(-2px); }
-        .section h2 { 
-            color: #0f5d3a; 
-            font-size: 24px; 
-            margin-bottom: 20px; 
-            display: flex; 
-            align-items: center; 
-            gap: 10px; 
-            cursor: pointer; 
-        }
+        .section h2 { color: #0f5d3a; font-size: 24px; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
         .form-group { margin-bottom: 15px; }
-        .input { 
-            padding: 12px; 
-            border: 1px solid #d1d9d9; 
-            border-radius: 8px; 
-            width: 100%; 
-            font-size: 14px; 
-            transition: border 0.3s ease; 
-        }
+        .input { padding: 12px; border: 1px solid #d1d9d9; border-radius: 8px; width: 100%; font-size: 14px; transition: border 0.3s ease; }
         .input:focus { border-color: #0f5d3a; outline: none; }
-        .btn { 
-            background: linear-gradient(135deg, #f4c430 0%, #e6b800 100%); 
-            color: #0f5d3a; 
-            padding: 12px 24px; 
-            border: none; 
-            border-radius: 8px; 
-            cursor: pointer; 
-            font-weight: 600; 
-            transition: all 0.3s ease; 
-            box-shadow: 0 2px 8px rgba(244,196,48,0.3); 
-        }
+        .btn { background: linear-gradient(135deg, #f4c430 0%, #e6b800 100%); color: #0f5d3a; padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.3s ease; box-shadow: 0 2px 8px rgba(244,196,48,0.3); }
         .btn:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(244,196,48,0.4); }
-        .google-btn { 
-            background: #ffffff; 
-            color: #0f5d3a; 
-            border: 1px solid #d1d9d9; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            gap: 10px; 
-        }
+        .google-btn { background: #ffffff; color: #0f5d3a; border: 1px solid #d1d9d9; display: flex; align-items: center; justify-content: center; gap: 10px; }
         .google-btn:hover { background: #f8f9fa; }
         .dashboard { display: none; padding: 20px; }
-        .feature-list { display: none; list-style-type: none; padding: 0; }
-        .feature-list li { margin-bottom: 10px; cursor: pointer; color: #0f5d3a; }
-        .feature-list li:hover { text-decoration: underline; }
-        .feature-form { display: none; margin-top: 15px; padding: 10px; border: 1px solid #d1d9d9; border-radius: 8px; background: #f8f9fa; }
-        .footer { 
-            text-align: center; 
-            margin-top: 40px; 
-            padding: 20px; 
-            color: #666; 
-            font-size: 12px; 
-            border-top: 1px solid #e8f0e8; 
-        }
-        @media (max-width: 768px) { 
-            .container { padding: 10px; } 
-            .header { flex-direction: column; gap: 10px; text-align: center; } 
-            .section { padding: 20px; } 
-            .title { font-size: 24px; } 
-            .btn { padding: 10px 20px; } 
-            .input { font-size: 12px; } 
-            .form-group { margin-bottom: 10px; } 
-        }
+        .footer { text-align: center; margin-top: 40px; padding: 20px; color: #666; font-size: 12px; border-top: 1px solid #e8f0e8; }
+        @media (max-width: 768px) { .container { padding: 10px; } .header { flex-direction: column; gap: 10px; text-align: center; } .section { padding: 20px; } .title { font-size: 24px; } .btn { padding: 10px 20px; } .input { font-size: 12px; } .form-group { margin-bottom: 10px; } }
     </style>
 </head>
 <body>
@@ -144,7 +68,7 @@
             </div>
             <div class="section dashboard" id="dashboardSection">
                 <h2>Welcome, <span id="userName"></span> (<span id="userRole"></span>)</h2>
-                <p id="dashboardContent">Your dashboard will display features based on your role. Please log in to view.</p>
+                <div id="dashboardContent"></div>
                 <button class="btn" id="logoutBtn" style="margin-top: 10px;">Logout</button>
             </div>
         </main>
@@ -187,6 +111,11 @@
             const email = emailInput.value;
             const password = passwordInput.value;
             const userType = userTypeSelect.value;
+
+            if (!email || !password || !userType) {
+                authMessage.textContent = 'Please fill all fields';
+                return;
+            }
 
             const { data, error } = await supabase.auth.signInWithPassword({ email, password });
             if (error) {
@@ -248,104 +177,105 @@
                     .select('role, full_name')
                     .eq('id', user.id)
                     .single();
-                userName.textContent = profile?.full_name || user.email.split('@')[0];
-                userRole.textContent = profile?.role || 'guest';
+                if (!profile) {
+                    await updateProfile(userTypeSelect.value || 'guest');
+                    return handleAuthState(user);
+                }
+                userName.textContent = profile.full_name || user.email.split('@')[0];
+                userRole.textContent = profile.role || 'guest';
                 loginSection.style.display = 'none';
                 dashboardSection.style.display = 'block';
 
-                switch (profile?.role) {
+                let content = '';
+                switch (profile.role) {
                     case 'farmer':
-                        dashboardContent.innerHTML = `
-                            <h2 onclick="toggleSection('farmerFeatures')">Farmer Dashboard <span class="toggle-icon">+</span></h2>
-                            <ul id="farmerFeatures" class="feature-list">
-                                <li onclick="showForm('listProduce')">List produce offerings</li>
-                                <div id="listProduce" class="feature-form">
+                        content = `
+                            <h3>Farmer Dashboard</h3>
+                            <button class="btn" onclick="refreshData('farmer')">Refresh Data</button>
+                            <ul>
+                                <li><a href="#" onclick="showForm('listProduce')">List Produce</a></li>
+                                <div id="listProduce" class="feature-form" style="display:none;">
                                     <input class="input" type="text" placeholder="Name" id="produceName">
-                                    <input class="input" type="number" placeholder="Quantity (kg)" id="produceQty">
-                                    <input class="input" type="number" placeholder="Price per kg" id="producePrice">
+                                    <input class="input" type="number" placeholder="Quantity (kg)" id="produceQty" step="0.01">
+                                    <input class="input" type="number" placeholder="Price per kg" id="producePrice" step="0.01">
                                     <select class="input" id="produceGrade">
-                                        <option>A</option><option>B</option><option>C</option>
+                                        <option value="A">A</option><option value="B">B</option><option value="C">C</option>
                                     </select>
-                                    <button class="btn" onclick="addProduce()">Add</button>
+                                    <button class="btn" onclick="addProduce()">Add Produce</button>
                                 </div>
-                                <li>Set minimal pricing</li>
-                                <li>Notify buyers of availability</li>
-                                <li onclick="showAnalytics()">Analytics of past sales</li>
-                                <div id="analytics" class="feature-form">Analytics data would load here.</div>
-                                <li>Track order history</li>
-                                <li>Manage deliveries</li>
+                                <li>Set Pricing</li>
+                                <li>Notify Buyers</li>
+                                <li><a href="#" onclick="showAnalytics()">View Analytics</a></li>
+                                <div id="analytics" class="feature-form" style="display:none;">Loading analytics...</div>
+                                <li>Track Orders</li>
+                                <li>Manage Deliveries</li>
                             </ul>
                         `;
                         break;
                     case 'trader':
-                        dashboardContent.innerHTML = `
-                            <h2 onclick="toggleSection('traderFeatures')">Trader Dashboard <span class="toggle-icon">+</span></h2>
-                            <ul id="traderFeatures" class="feature-list">
-                                <li>Browse available produce</li>
-                                <li>View live pricing</li>
-                                <li onclick="showForm('placeOrder')">Place orders</li>
-                                <div id="placeOrder" class="feature-form">
+                        content = `
+                            <h3>Trader Dashboard</h3>
+                            <button class="btn" onclick="refreshData('trader')">Refresh Data</button>
+                            <ul>
+                                <li>Browse Produce</li>
+                                <li>View Pricing</li>
+                                <li><a href="#" onclick="showForm('placeOrder')">Place Order</a></li>
+                                <div id="placeOrder" class="feature-form" style="display:none;">
                                     <input class="input" type="text" placeholder="Produce ID" id="orderProduceId">
-                                    <input class="input" type="number" placeholder="Quantity (kg)" id="orderQty">
-                                    <button class="btn" onclick="submitOrder()">Submit</button>
+                                    <input class="input" type="number" placeholder="Quantity (kg)" id="orderQty" step="0.01">
+                                    <button class="btn" onclick="submitOrder()">Submit Order</button>
                                 </div>
-                                <li>Request deliveries</li>
-                                <li>Payments via wallet</li>
-                                <li>Alerts for deals</li>
+                                <li>Request Deliveries</li>
+                                <li>Wallet Payments</li>
+                                <li>Deal Alerts</li>
                             </ul>
                         `;
                         break;
                     case 'admin':
-                        dashboardContent.innerHTML = `
-                            <h2 onclick="toggleSection('adminFeatures')">Admin Dashboard <span class="toggle-icon">+</span></h2>
-                            <ul id="adminFeatures" class="feature-list">
-                                <li>Real-time dashboard</li>
-                                <li>Manage listings</li>
-                                <li>Audit and settlement</li>
-                                <li>Notification & alerts</li>
+                        content = `
+                            <h3>Admin Dashboard</h3>
+                            <button class="btn" onclick="refreshData('admin')">Refresh Data</button>
+                            <ul>
+                                <li>Real-Time Dashboard</li>
+                                <li>Manage Listings</li>
+                                <li>Audit & Settlement</li>
+                                <li>Notifications</li>
                             </ul>
                         `;
                         break;
                     case 'logistics':
-                        dashboardContent.innerHTML = `
-                            <h2 onclick="toggleSection('logisticsFeatures')">Logistics Dashboard <span class="toggle-icon">+</span></h2>
-                            <ul id="logisticsFeatures" class="feature-list">
-                                <li>Route optimization</li>
-                                <li>Track shipments</li>
-                                <li>Coordinate loading</li>
-                                <li>Integrate with orders</li>
+                        content = `
+                            <h3>Logistics Dashboard</h3>
+                            <button class="btn" onclick="refreshData('logistics')">Refresh Data</button>
+                            <ul>
+                                <li>Route Optimization</li>
+                                <li>Track Shipments</li>
+                                <li>Coordinate Loading</li>
+                                <li>Order Integration</li>
                             </ul>
                         `;
                         break;
                     default:
-                        dashboardContent.textContent = 'Please contact support to assign a role.';
+                        content = 'Please contact support to assign a role.';
                 }
-
-                // Add toggle functionality
-                document.querySelectorAll('h2[onclick^="toggleSection"]').forEach(h => {
-                    h.addEventListener('click', () => {
-                        const id = h.getAttribute('onclick').match(/\('(.+?)'\)/)[1];
-                        const list = document.getElementById(id);
-                        const icon = h.querySelector('.toggle-icon');
-                        if (list.style.display === 'block') {
-                            list.style.display = 'none';
-                            icon.textContent = '+';
-                        } else {
-                            list.style.display = 'block';
-                            icon.textContent = '-';
-                        }
-                    });
-                });
+                dashboardContent.innerHTML = content;
             }
         }
 
         async function updateProfile(userType) {
+            const fullName = prompt('Enter your full name:', '');
+            if (!fullName || !userType) return;
             const { error } = await supabase.from('profiles').upsert({
                 id: (await supabase.auth.getUser()).data.user.id,
                 role: userType,
-                full_name: prompt('Enter your full name:', '')
+                full_name: fullName
             }, { onConflict: 'id' });
-            if (error) console.error('Profile update failed:', error.message);
+            if (error) {
+                console.error('Profile update failed:', error.message);
+                authMessage.textContent = `Profile update failed: ${error.message}`;
+            } else {
+                authMessage.textContent = 'Profile updated successfully!';
+            }
         }
 
         function showForm(id) {
@@ -359,24 +289,57 @@
             const price = parseFloat(document.getElementById('producePrice').value);
             const grade = document.getElementById('produceGrade').value;
 
-            const { data, error } = await supabase.from('produce').insert([{ name, quantity_kg: qty, price_per_kg: price, quality_grade: grade, farmer_id: (await supabase.auth.getUser()).data.user.id }]);
-            if (error) alert('Add failed: ' + error.message);
-            else alert('Produce added successfully!');
+            if (!name || isNaN(qty) || isNaN(price) || !grade) {
+                authMessage.textContent = 'Please fill all fields with valid data';
+                return;
+            }
+
+            const { data, error } = await supabase.from('produce').insert({
+                name, quantity_kg: qty, price_per_kg: price, quality_grade: grade,
+                farmer_id: (await supabase.auth.getUser()).data.user.id
+            });
+            if (error) {
+                authMessage.textContent = `Add failed: ${error.message}`;
+            } else {
+                authMessage.textContent = 'Produce added successfully!';
+                document.getElementById('listProduce').style.display = 'none';
+            }
         }
 
         async function submitOrder() {
             const produceId = document.getElementById('orderProduceId').value;
             const qty = parseFloat(document.getElementById('orderQty').value);
 
-            const { data, error } = await supabase.from('orders').insert([{ produce_id: produceId, quantity_kg: qty, buyer_id: (await supabase.auth.getUser()).data.user.id }]);
-            if (error) alert('Order failed: ' + error.message);
-            else alert('Order placed successfully!');
+            if (!produceId || isNaN(qty)) {
+                authMessage.textContent = 'Please fill all fields with valid data';
+                return;
+            }
+
+            const { data, error } = await supabase.from('orders').insert({
+                produce_id: produceId, quantity_kg: qty,
+                buyer_id: (await supabase.auth.getUser()).data.user.id,
+                total_amount: qty * (await supabase.from('produce').select('price_per_kg').eq('id', produceId).single()).data.price_per_kg,
+                status: 'pending'
+            });
+            if (error) {
+                authMessage.textContent = `Order failed: ${error.message}`;
+            } else {
+                authMessage.textContent = 'Order placed successfully!';
+                document.getElementById('placeOrder').style.display = 'none';
+            }
         }
 
         function showAnalytics() {
             const analytics = document.getElementById('analytics');
             analytics.style.display = analytics.style.display === 'block' ? 'none' : 'block';
-            analytics.textContent = 'Loading analytics... (simulated data)';
+        }
+
+        async function refreshData(role) {
+            authMessage.textContent = `Refreshing ${role} data...`;
+            // Simulate data refresh (replace with real API calls if needed)
+            setTimeout(() => {
+                authMessage.textContent = `${role} data refreshed!`;
+            }, 1000);
         }
 
         supabase.auth.onAuthStateChange((event, session) => {
